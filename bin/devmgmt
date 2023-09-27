@@ -1,0 +1,214 @@
+#!/bin/bash
+#/////////////////////////////////////////////////////////////////////////////////////
+# Device Manager for NanoHome - manages MQTT Devices on Grafana Dashboards
+#/////////////////////////////////////////////////////////////////////////////////////
+
+# Catch Parameters
+device="$2"
+description="$3"
+devicetype="$4"
+
+# Load config
+source /opt/nanohome/config.cfg
+
+# Variables
+apikey="$(cat $rootpath/conf/api_key.json | jq -r '.key')"
+random="$(date +%s)"
+
+# Get device ID from http-string
+if [ "$1" = "remove" ]; then
+	device=$(echo "$device" | awk -F'//' '{printf $2}')
+fi
+
+# variables
+option_dev='\\r\\n\\t<option value=\\"'$device'\\">'"$description"'</option>'
+option_dev_http='\\r\\n\\t<option value=\\"http://'$device'\\">'"$description"'</option>'
+devicelist_drop='\\r\\n\\t<option selected disabled>...Geräteliste...</option>'
+timer_drop='name=\\"nanolist_timer\\">\\r\\n\\t<option selected disabled>...Gerät...</option>'
+killer_drop='name=\\"nanolist_stbykill\\">\\r\\n\\t<option selected disabled>...Gerät...</option>'
+switch_if_drop='\\r\\n\\t<option selected disabled>...Wenn...</option>'
+switch_then_drop='\\r\\n\\t<option selected disabled>...Dann...</option>'
+
+# tempfiles
+mout="/tmp/merge_panel_output.json"
+mtemp="/tmp/merge_panel_temp.json"
+mfinal="/tmp/merge_panel_final.json"
+minp="/tmp/merge_panel_input.json"
+
+#/////////////////////////////////////////////////////////////////////////////////////
+# Functions
+#/////////////////////////////////////////////////////////////////////////////////////
+
+# Get dashboard
+get_dashboard () {
+	
+	# Download dashboard drom grafana to temporary file
+	curl -X GET -H "Authorization: Bearer $apikey" -H "Content-Type: application/json" "http://$grafana_url"/api/dashboards/uid/"$1" > $mtemp
+}
+
+# Update dashboard
+update_dashboard () {
+
+	# Get and overwrite folderId of dashboard 
+	folderid="$(cat $mout | grep folderId | awk '{ sub(/^[ \t]+/, ""); print }')"
+	json_data="{ ${folderid} \"overwrite\": true }"
+	jq --argjson options "$json_data" '. += $options' $mout > $mfinal
+	
+	# Upload dashboard to grafana
+	curl -X POST --insecure -H "Authorization: Bearer $apikey" -H "Content-Type: application/json" -d @$mfinal "http://$grafana_url"/api/dashboards/db > /dev/null 2>&1
+	
+	# Remove temporary files
+	rm /tmp/merge_panel_*
+}
+
+# Merge new element into settings dashboard
+merge_settings () {
+
+	get_dashboard "$settings_uid"
+	jq . $mtemp > $mout
+	
+	# Add option to dashboard
+	sed -i "s#${devicelist_drop}#${devicelist_drop}${option_dev_http}#g" $mout
+	
+	# Upload dashboard
+	update_dashboard
+}
+
+# Merge new element into home dashboard
+merge_home () {
+	
+	# Copy element template
+	cp $jsontemplate $minp
+
+	# Replace device-strings in template
+	sed -i 's/_DEVID_/'$device'/g' $minp
+	sed -i 's/_DESCRIPTION_/'"$description"'/g' $minp
+	sed -i 's/_RAND_/'$random'/g' $minp
+	
+	# Get home dashboard
+	get_dashboard "$home_uid"
+	
+	# Add element to dashboard
+	jq --argjson panel "$(<$minp)" '.dashboard.panels += [$panel]' $mtemp > $mout
+
+	# Upload dashboard
+	update_dashboard
+}
+
+# Merge new element into timer dashboard
+merge_timer () {
+
+	# Get timer dashboard
+	get_dashboard "$zsp_uid"
+	jq . $mtemp > $mout
+	
+	# Add standbykiller option if device is switch
+	if [[ $devicetype == *switch ]]; then
+		sed -i "s#${killer_drop}#${killer_drop}${option_dev}#g" $mout
+	fi
+
+	# add timer option
+	sed -i "s#${timer_drop}#${timer_drop}${option_dev}#g" $mout
+
+	# add multiswitch option
+	sed -i "s#${switch_if_drop}#${switch_if_drop}${option_dev}#g" $mout
+	sed -i "s#${switch_then_drop}#${switch_then_drop}${option_dev}#g" $mout
+	
+	# Upload dashboard
+	update_dashboard
+}
+
+# Remove device from dashboard
+remove_from_dashboard () {
+
+	get_dashboard "$1"
+	jq . $mtemp > $mout
+	
+	# if device found
+	if cat $mout | grep "$device" > /dev/null 2>&1 ; then
+		sed -i "s#${option_dev}##g" $mout
+		sed -i "s#${option_dev_http}##g" $mout
+		update_dashboard
+	else
+		rm /tmp/merge_panel_*
+	fi
+}
+
+#/////////////////////////////////////////////////////////////////////////////////////
+# Main
+#/////////////////////////////////////////////////////////////////////////////////////
+if [ "$1" = "show" ]; then
+
+	msg="$(cat $rootpath/devlist | awk -F':' '{printf $2 " (" $1 ")"}')"
+	statusmsg INPUT="HEADER" MSG="Geräteliste" COLOR="hotpink"
+	statusmsg INPUT="MESSAGE" MSG="$msg" COLOR="white"
+	exit 0
+
+elif [ "$1" = "add" ]; then
+
+	# add device to devlist
+	echo -e "$device:$description:$devicetype" >> $rootpath/devlist
+
+	# Check device compatibility
+	source $rootpath/devcompatibility $device
+	
+	# Add device to dashboards
+	merge_settings
+	merge_home
+	merge_timer
+	
+	# Create service if new shelly device
+	if $pluspm; then
+		svcname="$device.service"
+		svcfile="/etc/systemd/system/$svcname"
+		cp $servicetemplate $svcfile
+		sed -i "s/-device/$device/" $svcfile
+		systemctl start $svcname
+		systemctl enable $svcname
+	fi
+	
+	# message
+	statusmsg INPUT="HEADER" MSG="Gerät hinzugefügt" COLOR="hotpink"
+	statusmsg INPUT="MESSAGE" MSG="$description ($device)" COLOR="white"
+	exit 0
+
+elif [ "$1" = "remove" ]; then
+
+	# # Remove services and timers
+	# cronman remove "$device"
+	# echo ""
+	# multiswitch remove "$device"
+	# echo ""
+	# standbykiller remove "$device"
+	# echo ""
+
+	# Remove service if new shelly device
+	if $pluspm; then
+		svcname="$device.service"
+		svcfile="/etc/systemd/system/$svcname"
+		systemctl stop $svcname
+		systemctl disable $svcname
+		rm -r "$svcfile"
+		systemctl daemon-reload
+	fi
+	
+	# Remove from devlist	
+	sed -i '/'$device'/d' $rootpath/devlist
+	
+	# Remove from dashboards
+	remove_from_dashboard $settings_uid
+	remove_from_dashboard $zsp_uid
+	
+	# Show message
+	statusmsg INPUT="HEADER" MSG="Gerät gelöscht" COLOR="hotpink"
+	statusmsg INPUT="MESSAGE" MSG="$description ($device)" COLOR="white"
+	statusmsg INPUT="SMALL" MSG="Element auf Home-Dashboard<br>manuell löschen" COLOR="red"
+	exit 0
+
+#/////////////////////////////////////////////////////////////////////////////////////
+# Err Exit
+#/////////////////////////////////////////////////////////////////////////////////////
+else
+	statusmsg INPUT="ERROR" MSG="Eingabe prüfen"
+	exit 1
+fi

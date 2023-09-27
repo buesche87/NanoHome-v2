@@ -1,0 +1,56 @@
+#!/bin/bash
+# standbykiller service for NanoHome
+
+# Catch Parameters
+device="$1"
+maxpower="$2"
+
+# Load config
+. INSTALLDIR/config.cfg
+
+# Environment
+devstate="off"
+try="1"
+. $rootpath/dev_compatibility $device
+
+while read curpower; do
+
+	now=$(date +"%T")
+		
+	# if power = 0W
+	if (( $(echo "$curpower == 0" | bc -l) )); then
+		echo "|[$now] $device: off -> nothing todo"
+		devstate="off"
+	
+	# if power below threshold
+	elif (( $(echo "$curpower < $maxpower" | bc -l) )); then
+		
+		# check if device just started
+		
+		if [ "$devstate" == "on" ]; then
+			echo "|[$now] $device: ${curpower}W - standby killed"
+			mosquitto_pub -h $mqtt_server -u $mqtt_system_user -P $mqtt_system_pass -t $control_topic -m $off_command >/dev/null 2>&1			
+			devstate="off"
+			
+		elif [ "$devstate" == "off" ]; then
+			echo "|[$now] $device just started -> wait 60 seconds"
+			sleep 60
+			devstate="on"
+		fi
+
+	else
+		# check if device just started
+		if [ "$devstate" == "off" ]; then
+			echo "|[$now] $device just started -> wait 60 seconds"
+			sleep 60
+			devstate="on"
+		
+		# if device was on
+		else
+			echo "|[$now] $device: ${curpower}W - more than ${maxpower}W -> keeping alive"
+			devstate="on"
+		fi
+
+	fi
+
+done < <(mosquitto_sub -h $mqtt_server -u $mqtt_system_user -P $mqtt_system_pass -t $power_topic -q 2)

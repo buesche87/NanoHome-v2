@@ -1,0 +1,46 @@
+##################################
+# NanoHome configuration         #
+##################################
+
+# NanoHome user
+linuxuser="nanohome"
+linuxpass="password"
+rootpath="/opt/nanohome"
+backupdir="/home/nanohome/backup"
+weather_location=""
+
+# InfluxDB settings
+influxdb_server="localhost"
+influxdb_database="nanohome"
+influxdb_admin="nanohome"
+influxdb_adminpass="password"
+influxdb_system_user="influx_system"
+influxdb_system_pass="password"
+
+
+# MQTT settings
+mqtt_server="localhost"
+mqtt_system_user="mqtt_system"
+mqtt_system_pass="password"
+mqtt_grafana_user="mqtt_grafana"
+mqtt_grafana_pass="password"
+
+
+# sensors - change parameters in sensor files first
+cputemp=false
+diskspace=false
+
+# Grafana Settings
+grafana_url="localhost:3000"
+home_uid="XieEaLmRk"
+devmgr_uid="Uhzl9yRgk"
+zsp_uid="_H3fwdmRz"
+settings_uid="sYOGRUiRz"
+
+# Device user
+mqtt_shelly_user="mqtt_shelly"
+mqtt_shelly_pass="password"
+
+# MQTT Dash user
+mqtt_dash_user="mqtt_dash"
+mqtt_dash_pass="password"

@@ -1,0 +1,177 @@
+#!/bin/bash
+#/////////////////////////////////////////////////////////////////////////////////////
+# Cron Manager for NanoHome - manage switches with crontab
+#/////////////////////////////////////////////////////////////////////////////////////
+
+# Catch Parameters
+device="$2"
+day="$3"
+on="$4"
+off="$5"
+
+# Load config and device support
+source INSTALLDIR/config.cfg
+source $rootpath/dev_compatibility $device
+
+#Help functions
+print_header () {
+	
+	echo "<font size='5' color='white'>Schaltuhr</font><font size='5' color='$2'> $1</font><br>"
+	
+}
+
+# Print Cronjob Details //////////////////////////////////////////////////
+print_cfg () {
+
+	desc="$(cat $rootpath/devlist | grep $1 | cut -d: -f2 )"
+	active_cronjobs="$(grep mosquitto /etc/crontab | grep $1 | awk '!NF || !seen[$0]++')"
+
+	if [ ! -z "$active_cronjobs" ]; then
+
+		on_msg="EIN"
+		off_msg="AUS"
+		open_msg="AUF"
+		close_msg="AB"
+
+		while IFS= read -r line; do
+			# Print Service State //////////////////////////////////////////////////
+			dev_state_temp="$(printf '%s\n' "$line" | awk '{ printf $16 " - " $5 ": " $2 ":" $1 } ')"		
+			dev_state="$(echo $dev_state_temp | \
+						sed 's,^on,'"$on_msg"',g' | \
+						sed 's,^off,'"$off_msg"',g' | \
+						sed 's,^open,'"$open_msg"',g' | \
+						sed 's,^close,'"$close_msg"',g' | \
+						sed 's,*: ,Täglich ,g' | \
+						sed 's,1: ,Montag ,g' | \
+						sed 's,2: ,Dienstag ,g' | \
+						sed 's,3: ,Mittwoch ,g' | \
+						sed 's,4: ,Donnerstag ,g' | \
+						sed 's,5: ,Freitag ,g' | \
+						sed 's,6: ,Samstag ,g' | \
+						sed 's,0: ,Sonntag ,g' | \
+						sed 's,6-7: ,Wochenende ,g' | \
+						sed 's,1-5: ,Werktags ,g')"
+
+			statusmsg INPUT="MESSAGE" DEVICE="$desc" MSG="$dev_state" COLOR="white"
+
+		done <<< "$active_cronjobs"
+
+	else
+		statusmsg INPUT="MESSAGE" DEVICE="$desc" MSG="intaktiv" COLOR="grey"
+	fi
+}
+
+# Add cronjob
+add_cronjob () {
+
+	cron="$1 $2 * * $3 mosquitto_pub -h $mqtt_server -u $mqtt_system_user -P $mqtt_system_pass -t $control_topic -m $4"
+	echo $cron > /etc/crontab
+
+}
+
+#/////////////////////////////////////////////////////////////////////////////////////
+# Add a new Cronjob
+#/////////////////////////////////////////////////////////////////////////////////////
+if [ "$1" = "add" ] && [ ! -z "$2" ] && [ ! -z "$3" ]; then
+
+	if [ "$4" = "" ] && [ "$5" = "" ]; then
+		
+		statusmsg INPUT="ERROR" MSG="Das geht nicht"
+		exit 1
+
+	fi
+
+	# catch on/off time
+	on_hours="${on:0:2}"
+	on_minutes="${on:3:5}"
+	off_hours="${off:0:2}"
+	off_minutes="${off:3:5}"
+
+	if [ ${#on_hours} -lt 2 ]; then on_hours="0$on_hours"; fi
+	if [ "$on_minutes" = "" ]; then on_minutes="00"; fi
+	if [ ${#off_hours} -lt 2 ]; then off_hours="0$off_hours"; fi
+	if [ "$off_minutes" = "" ]; then off_minutes="00"; fi
+
+	# Create Cronjob Entries
+	if [ "$dev_type" = "roller" ] || [ "$dev_type" = "shutter" ]; then
+
+		$onarg="open" 
+		$offarg="close"
+	
+	elif [ "$dev_type" = "switch" ]; then
+
+		$onarg="on" 
+		$offarg="off"
+	
+	else
+	
+		echo "Device not supported"
+		exit 1
+
+	fi
+
+	# Insert Cronjob Entries
+	if [ ! "$on" = "" ]; then
+		add_cronjob $on_min $on_hour $day $onarg
+	fi
+
+	if [ ! "$off" = "" ]; then
+		add_cronjob $cron_off $off_hour $day $offarg
+	fi
+	
+	# show cronjobs
+	statusmsg INPUT="HEADER" DEVICE="$device" MSG="aktiviert" COLOR="#c0fcb"
+	print_cfg "$device"
+
+
+#/////////////////////////////////////////////////////////////////////////////////////
+# Show Cronjob
+#/////////////////////////////////////////////////////////////////////////////////////
+elif [ "$1" = "show" ]; then
+
+	if [ "$device" = "all" ]; then
+		active="$(grep mosquitto /etc/crontab | awk '{ printf $14"\n" }'  | awk '!NF || !seen[$0]++' | awk -F'/' '{print $2}')"
+	else
+		active="$(grep $device /etc/crontab | awk '{ printf $14"\n" }' | awk '!NF || !seen[$0]++' | awk -F'/' '{print $2}' )"
+	fi
+
+	if [ ! -z "$active" ]; then
+
+		statusmsg INPUT="HEADER" DEVICE="$device" MSG="aktiv" COLOR="#c0fcb"
+		
+		while IFS= read -r line; do
+	
+			print_cfg "$line" 
+
+		done <<< "$active"
+	
+	else
+
+		statusmsg INPUT="HEADER" DEVICE="$device" MSG="inaktiv" COLOR="grey"
+
+		if [ "$device" != "all" ]; then
+			print_cfg "$device"
+		fi
+	fi	
+	
+
+#/////////////////////////////////////////////////////////////////////////////////////
+# Remove Cronjob
+#/////////////////////////////////////////////////////////////////////////////////////
+elif [ "$1" = "remove" ]; then
+
+	grep -v "$device" /etc/crontab
+	
+	statusmsg INPUT="HEADER" DEVICE="$device" MSG="deaktiviert" COLOR="grey"
+	print_cfg "$device"
+	
+else
+
+	echo "--------------------------------------------------------------"
+	echo "Usage: cronman show|add|remove device|all (on_time) (off_time)"
+	echo "--------------------------------------------------------------"
+	echo
+
+	exit 1
+
+fi

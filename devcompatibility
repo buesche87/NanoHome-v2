@@ -1,0 +1,132 @@
+#!/bin/bash
+#/////////////////////////////////////////////////////////////////////////////////////
+# Device Compatibilty
+#/////////////////////////////////////////////////////////////////////////////////////
+
+# Parameters
+devcomp_device="$1"
+rootpath="/opt/nanohome"
+
+# Get device description and type
+dev_desc="$(grep $devcomp_device $rootpath/devlist | cut -d: -f2 )"
+dev_type="$(grep $devcomp_device $rootpath/devlist | cut -d: -f3 )"
+
+# shelly devid uppercase
+devcomp_devtype=$(echo $devcomp_device | cut -d- -f1)
+devcomp_devid=$(echo $devcomp_device | cut -d- -f2)
+device=$devcomp_devtype-$(echo ${devid^^})
+
+# Legacy Switch
+function legacy-switch () {
+
+	control_topic="shellies/$devcomp_device/relay/0/command"
+	status_topic="shellies/$devcomp_device/relay/0"
+	off_command="off"
+	on_command="on"
+	toggle_command="toggle"
+	template="$rootpath/template/legacy_switch.json.template"
+}
+
+# Legacy PowerMeter
+function legacy-pm () {
+
+	power_topic="shellies/$devcomp_device/relay/0/power"
+	energy_topic="shellies/$devcomp_device/relay/0/energy"
+}
+
+# Plus Switch
+function plus-switch () {
+
+	control_topic="$devcomp_device/command/switch:0"
+	status_topic="$devcomp_device/status/switch:0"
+	status_update="$devcomp_device/status"
+	status_command="status_update"
+	off_command="off"
+	on_command="on"
+	toggle_command="toggle"
+	template="$rootpath/template/plus_switch.json.template"
+}
+
+# Plus PowerMeter
+function plus-pm () {
+	
+	plus-pm=$true
+
+}
+
+# Legacy Roller
+function roller () {
+
+	control_topic="shellies/$devcomp_device/roller/0/command"
+	pos_control="shellies/$devcomp_device/roller/0/command/pos"
+	pos_return="shellies/$devcomp_device/roller/0/pos"
+	power_topic="shellies/$devcomp_device/roller/0/power"
+	energy_topic="shellies/$devcomp_device/roller/0/energy"
+	on_command="open"
+	off_command="close"
+	template="$rootpath/template/legacy_roller.json.template"
+}
+
+# Legacy Shutter
+function shutter () {
+
+	control_topic="shellies/$devcomp_device/roller/0/command"
+	pos_control="shellies/$devcomp_device/roller/0/command/pos"
+	pos_return="shellies/$devcomp_device/roller/0/pos"
+	power_topic="shellies/$devcomp_device/roller/0/power"
+	energy_topic="shellies/$devcomp_device/roller/0/energy"
+	on_command="open"
+	off_command="close"
+	template="$rootpath/template/legacy_shutter.json.template"
+}
+
+# Legacy Dimmer
+function dimmer () {
+
+	control_topic="shellies/$devcomp_device/light/0/command"
+	status_topic="shellies/$devcomp_device/light/0/status"
+	dim_value="shellies/$devcomp_device/light/0/set"
+	power_topic="shellies/$devcomp_device/light/0/power"
+	energy_topic="shellies/$devcomp_device/light/0/energy"
+	on_command="on"
+	off_command="off"
+	
+}
+
+# Main
+if [[ $devcomp_device == shelly1-* ]]; then
+
+	legacy-switch
+
+elif [[ $devcomp_device == shelly1pm-* ]]; then
+
+	legacy-switch
+	legacy-pm
+
+elif [[ $devcomp_device == shellyswitch25- ]]; then
+	
+	if [[ $dev_type == *switch ]]; then 
+
+		legacy-switch
+	
+	elif [ "$dev_type" = "roller" ]; then 
+	
+		roller
+		
+	elif [ "$dev_type" = "roller" ]; then 
+	
+		shutter
+	
+	fi
+
+elif [[ $devcomp_device == shellyplus1pm-* ]]; then
+
+	plus-switch
+	plus-pm
+
+else
+
+	statusmsg INPUT="ERROR" MSG="Gerät nicht kompatibel"
+	exit 1
+
+fi

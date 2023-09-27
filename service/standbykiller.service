@@ -1,0 +1,11 @@
+[Unit]
+Wants=mosquitto.service
+Description=-desc -sbpwr W
+
+[Service]
+Type=idle
+ExecStart=/bin/bash standbykillersvc -dev -sbpwr
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

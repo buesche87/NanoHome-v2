@@ -1,0 +1,135 @@
+#!/bin/bash
+#/////////////////////////////////////////////////////////////////////////////////////
+# Standbykiller for NanoHome - sends OFF to topic if device falls below [W]
+#/////////////////////////////////////////////////////////////////////////////////////
+
+# Catch Parameters
+device="$2"
+maxpower="$3"
+
+# Load config
+. INSTALLDIR/config.cfg
+
+# Device Support
+if [ ! "$device" = "all" ]; then
+	. $rootpath/dev_compatibility $device
+fi
+
+# Environment
+svcname="standbykiller.$device.service"
+svclocation="/etc/systemd/system"
+svcfile="$svclocation/$svcname"
+svctemplate="$rootpath/template/standbykiller.service.template"
+
+# help functions
+print_header () {
+	
+	echo "<font size='5' color='white'>Standbykiller</font><font size='5' color='$2'> $1</font><br>"
+	
+}
+
+# Print Standbykiller Details //////////////////////////////////////////////////
+print_cfg () {
+	
+	desc="$(cat $rootpath/devlist | grep $1 | cut -d: -f2 )"
+	mp="$(cat $rootpath/killerlist | grep $1 | cut -d: -f2 )"
+	deschtml="<font color='hotpink'>$desc</font>"
+	
+	if [ ! -z "$mp" ]; then
+		echo -e "<font size='4'>$deschtml: <font color='#c0fcb1'>$mp W</font></font>"
+	else
+		echo -e "<font size='4'>$deschtml: <font color='grey'>inaktiv</font></font>" 
+	fi
+}
+
+
+#/////////////////////////////////////////////////////////////////////////////////////
+# Show Standbykiller
+#/////////////////////////////////////////////////////////////////////////////////////
+if [ "$1" = "show" ] && [ ! -z "$device" ]; then
+
+	if [ "$device" = "all" ]; then
+		active="$( ls $svclocation | grep standbykiller | cut -d. -f2 )"
+	else
+		active="$( ls $svclocation | grep standbykiller.$device | cut -d. -f2 )"
+	fi
+
+	if [ ! -z "$active" ]; then
+		
+		print_header "aktiv" "#c0fcb"
+		
+		while IFS= read -r line; do
+
+			print_cfg "$line"
+
+		done <<< "$active"
+
+	else
+	
+		print_header "inaktiv" "grey"
+
+		if [ "$device" != "all" ]; then
+			print_cfg "$device"
+		fi
+	fi
+
+
+#/////////////////////////////////////////////////////////////////////////////////////
+# Add Standbykiller
+#/////////////////////////////////////////////////////////////////////////////////////
+elif [ "$1" = "add" ] && [ ! -z "$device" ] && [ ! -z "$maxpower" ]; then
+
+	# check if service exists
+	if test -f "$svcfile"; then
+
+		print_header "aktiv" "#c0fcb"
+		print_cfg "$device"
+
+	# create new service
+	else
+		
+		desc="$(cat $rootpath/devlist | grep $device | cut -d: -f2 )"
+		
+		cp $svctemplate $svcfile
+
+		sed -i "s/-dev/$device/" $svcfile
+		sed -i "s/-desc/$desc/" $svcfile
+		sed -i "s/-sbpwr/$maxpower/" $svcfile
+
+		systemctl start $svcname
+		systemctl enable $svcname
+		
+		echo "$device:$maxpower" >> $rootpath/killerlist 
+		
+		print_header "aktiviert" "#c0fcb"
+		print_cfg "$device"
+
+	fi
+
+#/////////////////////////////////////////////////////////////////////////////////////
+# Remove Standbykiller
+#/////////////////////////////////////////////////////////////////////////////////////
+elif [ "$1" = "remove" ] && [ ! -z "$device" ]; then
+
+	systemctl stop $svcname
+	systemctl disable $svcname
+
+	rm -r $svcfile
+
+	systemctl daemon-reload
+
+	print_header "deaktiviert" "grey"
+	print_cfg "$device"
+
+	sed -i '/'$device'/d' $rootpath/killerlist
+
+else
+
+	echo "----------------------------------------------------------"
+	echo "Usage: standbykiller show|add|remove device (standbypower)"
+	echo "----------------------------------------------------------"
+	echo
+
+	exit 1
+
+fi

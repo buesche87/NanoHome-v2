@@ -1,0 +1,32 @@
+#!/bin/bash
+#/////////////////////////////////////////////////////////////////////////////////////
+# Mosquitto user manager - manages users from grafana dashboard
+#/////////////////////////////////////////////////////////////////////////////////////
+
+# Catch Parameters
+user="$2"
+pwd="$3"
+
+# Settings
+pwdfile="/etc/mosquitto/passwd"
+mospid=$(pidof mosquitto)
+
+# Add a new MQTT User
+if [ "$1" = "add" ]; then
+
+	mosquitto_passwd -b $pwdfile "$user" "$pwd"
+
+# Delete a MQTT User
+elif [ "$1" = "remove" ]; then
+
+	mosquitto_passwd -D $pwdfile "$user"
+
+fi
+
+# Show MQTT user list
+list=$(cat $pwdfile | cut -d : -f 1  | grep -v mqtt_system | grep -v mqtt_grafana)
+statusmsg INPUT="HEADER" MSG="MQTT Benutzerliste" COLOR="hotpink"
+statusmsg INPUT="MESSAGE" MSG="$list" COLOR="white"
+statusmsg INPUT="SMALL" MSG="Entfernen:</br>Benutzername kopieren</br>eintragen und löschen" COLOR="red"
+
+kill -HUP $mospid

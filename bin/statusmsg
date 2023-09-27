@@ -1,0 +1,39 @@
+#!/bin/bash
+#/////////////////////////////////////////////////////////////////////////////////////
+# Status on Grafana dashboards
+#/////////////////////////////////////////////////////////////////////////////////////
+
+for ARGUMENT in "$@"
+do
+   KEY=$(echo $ARGUMENT | cut -f1 -d=)
+
+   KEY_LENGTH=${#KEY}
+   VALUE="${ARGUMENT:$KEY_LENGTH+1}"
+
+   export "$KEY"="$VALUE"
+done
+
+
+if [ "$INPUT" = "HEADER" ]; then
+
+	echo -e "<font size='5' color='$COLOR'>$MSG</font><br>"
+
+fi
+
+if [ "$INPUT" = "MESSAGE" ]; then
+
+	echo -e "<font size='4' color='$COLOR'>$MSG</font><br>"
+
+fi
+
+if [ "$INPUT" = "SMALL" ]; then
+
+	echo -e "<font size='3' color='$COLOR'>$MSG</font><br>"
+
+fi
+
+if [ "$INPUT" = "ERROR" ]; then
+
+	echo -e "<font size='5' color='red'>$MSG</font><br>"
+
+fi

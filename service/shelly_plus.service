@@ -1,0 +1,11 @@
+[Unit]
+Wants=mosquitto.service influxdb.service
+Description=Shelly Plus Service - -device
+
+[Service]
+Type=simple
+ExecStart=/bin/bash /opt/nanohome/driver/plus_switch "-device"
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
