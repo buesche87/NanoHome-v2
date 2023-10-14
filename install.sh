@@ -53,21 +53,21 @@ cp ./service/* /tmp/nanohome/service
 cp -R ./res/* /usr/share/grafana/public/
 
 # Change installation parameters
-sed -i 's/INSTALLDIR/'$rootpath'/g' $rootpath/devcompatibility
+sed -i "s/INSTALLDIR/$rootpath/g" $rootpath/devcompatibility
 
 for i in $rootpath/bin/*; do
-    sed -i 's/INSTALLDIR/'$rootpath'/g' $i
+    sed -i "s/INSTALLDIR/$rootpath/g" $i
 done
 
 for i in $rootpath/driver/*; do
-    sed -i 's/INSTALLDIR/'$rootpath'/g' $i
+    sed -i "s/INSTALLDIR/$rootpath/g" $i
 done
 
 sed -i "s/;disable_sanitize_html.*/disable_sanitize_html = true/g" /etc/grafana/grafana.ini
 
 for i in /tmp/nanohome/service/*; do
-    sed -i 's/INSTALLDIR/'$rootpath'/g' $i
-	sed -i 's/SVCUSER/'$linuxuser'/g' $i
+    sed -i "s/INSTALLDIR/$rootpath/g" $i
+	sed -i "s/SVCUSER/$linuxuser/g" $i
 done
 
 # Copy services
