@@ -82,10 +82,10 @@ elif [ "$1" = "show" ]; then
 
 	# Print List
 	if [ ! -z "$multilist" ]; then
-		statusmsg INPUT="HEADER" MSG="Standbykiller aktiv" COLOR="#c0fcb"
+		statusmsg INPUT="HEADER" MSG="Multiswitch aktiv" COLOR="#c0fcb"
 		statusmsg INPUT="MESSAGE" MSG="$multilist" COLOR="white"
 	else
-		statusmsg INPUT="HEADER" MSG="Standbykiller inaktiv" COLOR="grey"
+		statusmsg INPUT="HEADER" MSG="Multiswitch inaktiv" COLOR="grey"
 	fi	
 
 #/////////////////////////////////////////////////////////////////////////////////////
