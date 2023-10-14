@@ -1,6 +1,14 @@
-# NanoHome
+# NanoHome v2
 
 This is a one-man show, don't expect it to be bug-free...
+
+Version 2 changes:
+
+- Stripped down to minimum
+- New UI
+- Completely rewritten, everything as bash-script
+- Adopt to InfluxDB v2
+- Adopt to Grafana service accounts
 
 I used https://dietpi.com as distribution
 
@@ -9,17 +17,15 @@ The following steps should be everything you need on a debian based distro for i
 
 # Repositories
 
-## InfluxDB (example debian bullseye)
+## InfluxDB with Influx CLI
 
 ```bash
 wget https://dl.influxdata.com/influxdb/releases/influxdb2-2.7.1-amd64.deb
 sudo dpkg -i influxdb2-2.7.1-amd64.deb
 
-
 wget https://dl.influxdata.com/influxdb/releases/influxdb2-client-2.7.3-linux-amd64.tar.gz
 tar xvzf influxdb2-client-2.7.3-linux-amd64.tar.gz
 sudo cp influx /usr/local/bin/
-
 ```
 
 ## Grafana
@@ -31,35 +37,38 @@ echo "deb [signed-by=/etc/apt/keyrings/grafana.gpg] https://apt.grafana.com stab
 
 # Dependencies
 
-
 ## Install software
 ```bash
 sudo apt update
-sudo apt install grafana mosquitto git 
+sudo apt install grafana influxdb mosquitto mosquitto-clients git openssl jq
 ```
 
 ## Install dependencies
+Not sure if needed
 ```bash
-sudo apt install mosquitto-clients build-essential libfreetype6-dev libjpeg-dev jq openssl tree bc
+sudo apt install build-essential libfreetype6-dev libjpeg-dev tree bc
 ```
 
-# unmask influxdb and start it
+# Start Services
 ```bash
 sudo service influxdb start
+sudo service grafana-server start
+sudo service mosquitto start
 ```
 
 ## Install NanoHome
 
 # Clone NanoHome
 ```bash
-git clone https://github.com/buesche87/NanoHome.git
+git clone https://github.com/buesche87/NanoHome-v2.git
 ```
 
 # Edit NanoHome Config
+```bash
+cp config.cfg.example config.cfg
+```
 
-Copy `config.cfg.example` to `config.cfg`.
-
-Edit username and password entries. Don't mess with the dashboard settings, these id's are given by the installation.
+Edit account details entries. Don't mess with the dashboard settings, these id's are given by the installation.
 
 # Install
 
