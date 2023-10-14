@@ -169,7 +169,7 @@ curl -i \
 -H "Accept: application/json" \
 -H "Content-Type:application/json" \
 -H "Authorization: Bearer $sa_token" \
--X POST --data "$(generate_datasource)" "http://$grafana_url/api/datasources"
+-X POST -d "$(generate_datasource)" "http://$grafana_url/api/datasources"
 
 # Create Grafana home dashboard
 sed -i 's#var user = \\\"\\\"#var user = \\\"'$mqtt_grafana_user'\\\"#' /tmp/nanohome/dashboards/home.json
