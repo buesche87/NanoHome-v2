@@ -40,7 +40,7 @@ echo "deb [signed-by=/etc/apt/keyrings/grafana.gpg] https://apt.grafana.com stab
 ## Install software
 ```bash
 sudo apt update
-sudo apt install grafana influxdb mosquitto mosquitto-clients git openssl jq
+sudo apt install grafana mosquitto mosquitto-clients git openssl jq
 ```
 
 ## Install dependencies
