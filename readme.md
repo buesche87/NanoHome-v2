@@ -51,6 +51,9 @@ sudo apt install build-essential libfreetype6-dev libjpeg-dev tree bc
 
 # Start Services
 ```bash
+sudo systemctl enable influxdb
+sudo systemctl enable grafana-server
+sudo systemctl enable mosquitto
 sudo service influxdb start
 sudo service grafana-server start
 sudo service mosquitto start
