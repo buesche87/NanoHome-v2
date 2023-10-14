@@ -54,9 +54,9 @@ sudo apt install build-essential libfreetype6-dev libjpeg-dev tree bc
 sudo systemctl enable influxdb
 sudo systemctl enable grafana-server
 sudo systemctl enable mosquitto
-sudo service influxdb start
-sudo service grafana-server start
-sudo service mosquitto start
+sudo systemctl start influxdb
+sudo systemctl start grafana-server
+sudo systemctl start mosquitto
 ```
 
 ## Install NanoHome
