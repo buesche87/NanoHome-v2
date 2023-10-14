@@ -9,7 +9,7 @@ if [ $(id -u) -ne 0 ]; then
 fi
 
 # load settings
-. ./config.cfg
+source ./config.cfg
 
 # test if user exists
 if getent passwd $linuxuser > /dev/null ; then
@@ -53,12 +53,22 @@ cp ./service/* /tmp/nanohome/service
 cp -R ./res/* /usr/share/grafana/public/
 
 # Change installation parameters
-sed -i "s#INSTALLDIR#$rootpath#" $rootpath/*
-sed -i "s#INSTALLDIR#$rootpath#" $rootpath/bin/*
-sed -i "s#INSTALLDIR#$rootpath#" $rootpath/driver/*
+sed -i 's/INSTALLDIR/$rootpath/g' $rootpath/devcompatibility
+
+for i in $rootpath/bin/*; do
+    sed -i 's/INSTALLDIR/$rootpath/g' $i
+done
+
+for i in $rootpath/driver/*; do
+    sed -i 's/INSTALLDIR/$rootpath/g' $i
+done
+
 sed -i "s#;disable_sanitize_html.*#disable_sanitize_html = true#g" /etc/grafana/grafana.ini
-sed -i "s#INSTALLDIR#$rootpath#" /tmp/nanohome/service/*
-sed -i "s#SVCUSER#$linuxuser#" /tmp/nanohome/service/*
+
+for i in /tmp/nanohome/service/*; do
+    sed -i 's/INSTALLDIR/$rootpath/g' $i
+	sed -i 's/SVCUSER/$linuxuser/g' $i
+done
 
 # Copy services
 cp /tmp/nanohome/service/* /etc/systemd/system/
@@ -133,7 +143,7 @@ curl -i \
 -X POST --data "$(create_serviceaccount)" "http://admin:admin@$grafana_url/api/serviceaccounts"
 
 # Create Serviceaccount Token
-token_json="$(curl -X POST -H "Content-Type: application/json" -d '{"name":"nanohome"}' http://admin:admin@$grafana_url/api/serviceaccounts/1/tokens)"
+token_json="$(curl -X POST -H "Content-Type: application/json" -d '{"name":"nanohome"}' http://admin:admin@$grafana_url/api/serviceaccounts/2/tokens)"
 echo "$token_json" | sudo tee $rootpath/conf/sa_token.json
 sa_token="$(echo "$token_json" | jq -r '.key')"
 
