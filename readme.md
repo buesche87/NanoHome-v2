@@ -65,6 +65,7 @@ git clone https://github.com/buesche87/NanoHome-v2.git
 
 # Edit NanoHome Config
 ```bash
+cd NanoHome
 cp config.cfg.example config.cfg
 ```
 
@@ -73,7 +74,6 @@ Edit account details entries. Don't mess with the dashboard settings, these id's
 # Install
 
 ```bash
-cd NanoHome
 chmod +x ./install.sh
 sudo ./install.sh
 ```
