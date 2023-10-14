@@ -234,8 +234,8 @@ curl -i \
 chown -R $linuxuser:$linuxuser $rootpath
 
 # Install Grafana Plugins
-/usr/share/grafana/bin/grafana-cli plugins install grafana-clock-panel
-/usr/share/grafana/bin/grafana-cli plugins install petrslavotinek-carpetplot-panel
+/usr/share/grafana/bin/grafana cli plugins install grafana-clock-panel
+/usr/share/grafana/bin/grafana cli plugins install petrslavotinek-carpetplot-panel
 
 # Prepare Crontab 
 echo "# Nanohome Crontabs" >> /etc/crontab
