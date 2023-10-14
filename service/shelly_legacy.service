@@ -1,12 +1,12 @@
 [Unit]
 Wants=mosquitto.service influxdb.service
-Description=Shelly Plus Service - -device/-component
+Description=Shelly Legacy Service - -device/-component
 
 [Service]
 Type=simple
 user=SVCUSER
 group=SVCUSER
-ExecStart=/bin/bash INSTALLDIR/driver/shelly_plus "-device" "-component"
+ExecStart=/bin/bash INSTALLDIR/driver/shelly_legacy "-device" "-component"
 Restart=always
 
 [Install]

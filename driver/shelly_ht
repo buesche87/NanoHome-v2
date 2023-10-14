@@ -1,0 +1,50 @@
+#!/bin/bash
+#/////////////////////////////////////////////////////////////////////////////////////
+# Shelly MQTT Status 
+#/////////////////////////////////////////////////////////////////////////////////////
+
+# Catch parameters
+device="$1"
+component="$2"
+
+# Load config
+source INSTALLDIR/config.cfg
+
+# Get device description
+desc=$device"|"$component
+devdesc="$(grep $desc $rootpath/devlist | cut -d'|' -f3 )"
+devdesc=${devdesc// /_}
+
+# Device Support
+source $rootpath/devcompatibility $device $component
+
+# Main
+while /bin/true; do
+	
+	# Get Temperature
+	if [ "$temperature_topic" ]; then
+		while read temperature; do
+			echo "Temperature: $temperature °C"
+			influx write -b $influxdb_bucket -p s "$devdesc Temperature=$temperature"
+		done < <(mosquitto_sub -h $mqtt_server -u $mqtt_system_user -P $mqtt_system_pass -t $temperature_topic -q 2) &
+	fi
+	
+	# Get Humidity
+	if [ "$humidity_topic" ]; then
+		while read humidity; do
+			echo "Humidity: $humidity rF"
+			influx write -b $influxdb_bucket -p s "$devdesc Humidity=$humidity"
+		done < <(mosquitto_sub -h $mqtt_server -u $mqtt_system_user -P $mqtt_system_pass -t $humidity_topic -q 2) &
+	fi
+	
+	# Get Battery
+	if [ "$battery_topic" ]; then
+		while read battery; do
+			echo "Battery: $battery %"
+			influx write -b $influxdb_bucket -p s "$devdesc Battery=$battery"
+		done < <(mosquitto_sub -h $mqtt_server -u $mqtt_system_user -P $mqtt_system_pass -t $battery_topic -q 2) &
+	fi
+	
+	sleep infinity
+
+done

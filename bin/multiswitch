@@ -4,112 +4,43 @@
 #/////////////////////////////////////////////////////////////////////////////////////
 
 # Catch Parameters
-dev1="$2"
-dev2="$3"
+device1="$2"
+description1="$3"
+device2="$4"
+description2="$5"
 
 # Load config
-. INSTALLDIR/config.cfg
+source INSTALLDIR/config.cfg
 
-
-if [ "$dev1" = "Wenn..." ] || [ "$dev2" = "Dann..." ]; then exit 1; fi
-if [ "$dev1" = "$dev2" ]; then dev1="all"; fi
-
-# Device Support
-if [ ! "$1" = "remove" ] && [ ! "$dev1" = "all" ]; then
-	. $rootpath/dev_compatibility $dev1
-fi
+# Get component description
+component1="$(grep $description1 $rootpath/devlist | cut -d'|' -f2 )"
+component2="$(grep $description2 $rootpath/devlist | cut -d'|' -f2 )"
 
 # Environment
-msident="$dev1.$dev2"
-svcname="multiswitch.$msident.service"
+multiswitchline="$description1 ($device1) -> $description2 ($device2)"
+svcname="multiswitch_"$device1"_"$component1"_"$device2"_"$component2".service"
 svclocation="/etc/systemd/system"
 svcfile="$svclocation/$svcname"
-svctemplate="$rootpath/template/multiswitch.service.template"
-
-# help functions
-print_header () {
-	echo "<font size='5' color='white'>Multiswitch</font><font size='5' color='$2'> $1</font><br>"
-}
-
-# Print Multiswitch Details //////////////////////////////////////////////////
-print_cfg () {
-	
-	devs="$( cat $rootpath/switchlist | grep $1 | cut -d: -f1 )"
-	ms="$( cat $rootpath/switchlist | grep $1 | cut -d: -f2 )"
-	
-	dev1="$( echo $devs | cut -d. -f1 )"
-	dev2="$( echo $devs | cut -d. -f2 )"
-	desc1="$(cat $rootpath/devlist | grep $dev1 | cut -d: -f2 )"
-	desc2="$(cat $rootpath/devlist | grep $dev2 | cut -d: -f2 )"
-	desc1html="<font color='hotpink'>$desc1</font>"
-	desc2html="<font color='hotpink'>$desc2</font>"
-	
-	if [ ! -z "$ms" ]; then
-		echo "<font size='4'>$desc1html -> $desc2html | <font color='#c0fcb1'>aktiv</font></font>"
-	else
-		echo "<font size='4'>$desc1html -> $desc2html | <font color='grey'>inaktiv</font></font>" 
-	fi
-}
-
-
-#/////////////////////////////////////////////////////////////////////////////////////
-# Show Multiswitches
-#/////////////////////////////////////////////////////////////////////////////////////
-if [ "$1" = "show" ] && [ ! -z "$dev1" ]; then
-
-	if [ "$dev1" = "all" ]; then
-		active="$( ls $svclocation | grep multiswitch | cut -d. -f2 )"
-	else
-		active="$( ls $svclocation | grep multiswitch.$dev1_$dev2 | cut -d. -f2 )"
-	fi
-
-
-	if [ ! -z "$active" ]; then
-		
-		print_header "aktiv" "#c0fcb"
-		
-		while IFS= read -r line; do
-
-			print_cfg "$line"
-
-		done <<< "$active"
-
-	else
-
-		if [ "$dev1" = "all" ]; then
-		
-			print_header "inaktiv" "grey"
-			
-		else
-		
-			print_header "inaktiv" "grey"
-			print_cfg "$msident"
-			
-		fi
-	fi
-
+svctemplate="$rootpath/service/multiswitch.service"
 
 #/////////////////////////////////////////////////////////////////////////////////////
 # Add Multiswitch
 #/////////////////////////////////////////////////////////////////////////////////////
-elif [ "$1" = "add" ] && [ ! -z "$dev1" ] && [ ! -z "$dev2" ] && [ ! "$dev1" = "$dev2" ]; then
+if [ "$1" = "add" ]; then
 
-	# Check if service exists
+	# check if service exists
 	if test -f "$svcfile"; then
-		
-		print_header "aktiv" "#c0fcb"
-		print_cfg "$msident"
+
+		statusmsg INPUT="ERROR" MSG="Bereits vorhanden"
 
 	# create service
 	else
-
-		desc1="$(cat $rootpath/devlist | grep $dev1 | cut -d: -f2 )"
-		desc2="$(cat $rootpath/devlist | grep $dev2 | cut -d: -f2 )"
 		
-		. $rootpath/dev_compatibility $dev1
+		# Load device compatibility
+		source $rootpath/devcompatibility $device1 $component1
 		dev1_command=$(echo $toggle_command)
 		
-		. $rootpath/dev_compatibility $dev2
+		source $rootpath/devcompatibility $device2 $component2
 		dev2_command=$(echo $toggle_command)
 		
 		# Copy Service File from a template and modify it		
@@ -119,52 +50,82 @@ elif [ "$1" = "add" ] && [ ! -z "$dev1" ] && [ ! -z "$dev2" ] && [ ! "$dev1" = "
 		sed -i "s/-dev2/$dev2/" $svcfile
 		sed -i "s/-value1/$dev1_command/" $svcfile
 		sed -i "s/-value2/$dev2_command/" $svcfile		
-		sed -i "s/-desc1/$desc1/" $svcfile
-		sed -i "s/-desc2/$desc2/" $svcfile
+		sed -i "s/-desc1/$description1/" $svcfile
+		sed -i "s/-desc2/$description2/" $svcfile
 
 		# Enable and Start Service
+		systemctl daemon-reload
 		systemctl start $svcname
 		systemctl enable $svcname
 		
-		echo "$dev1.$dev2:$desc1.$desc2" >> $rootpath/switchlist  
+		# Fill Multiswitch List
+		echo "$description1 ($device1) -> $description2 ($device2)" >> $rootpath/multilist 
 		
-		# Print Multiswitch on Dashboard
-		print_header "aktiviert" "#c0fcb"
-		print_cfg "$msident"
+		# Show Message
+		statusmsg INPUT="HEADER" MSG="Multiswitch aktiviert" COLOR="hotpink"
+		statusmsg INPUT="MESSAGE" MSG="$multiswitchline" COLOR="white"
 
 	fi
+
+
+#/////////////////////////////////////////////////////////////////////////////////////
+# Show Multiswitches
+#/////////////////////////////////////////////////////////////////////////////////////
+elif [ "$1" = "show" ]; then
+
+	# Get entry from Multiswitch List
+	if [ "$device" = "all" ]; then
+		multilist=$(cat $rootpath/multilist)
+	else
+		multilist=$(grep $multiswitchline $rootpath/multilist)
+	fi
+
+	# Print List
+	if [ ! -z "$multilist" ]; then
+		statusmsg INPUT="HEADER" MSG="Standbykiller aktiv" COLOR="#c0fcb"
+		statusmsg INPUT="MESSAGE" MSG="$multilist" COLOR="white"
+	else
+		statusmsg INPUT="HEADER" MSG="Standbykiller inaktiv" COLOR="grey"
+	fi	
 
 #/////////////////////////////////////////////////////////////////////////////////////
 # Remove Multiswitch
 #/////////////////////////////////////////////////////////////////////////////////////
-elif [ "$1" = "remove" ] && [ ! -z "$dev1" ] && [ ! "$dev1" = "$dev2" ]; then
-
-	# remove all services if only one device is set
+elif [ "$1" = "remove" ]; then
+	
 	if [ "$dev2" == "" ]; then 
-		msident="ls $svclocation | grep multiswitch | grep $dev1 | cut -d: -f2"
-	else
-		svcline="$msident"
-	fi
-
-	print_header "deaktiviert" "grey"
 	
-	# Delete Multiswitch
-	while IFS= read -r line
-	do
-		systemctl stop "multiswitch.$line.service"
-		systemctl disable "multiswitch.$line.service"
-
-		rm -r "$svclocation/multiswitch.$line.service"
-
-		systemctl daemon-reload
+		statusmsg INPUT="HEADER" MSG="Multiswitch gelöscht" COLOR="hotpink"
 		
-		print_cfg "$dev1.$dev2"
+		$svcline="ls $svclocation | grep multiswitch | grep $dev1"
+		
+		# Delete every Multiswitch
+		while IFS= read -r line
+		do
+			systemctl stop "$line"
+			systemctl disable "$line"
+			rm -r "$svclocation/$line"
+			systemctl daemon-reload
+			
+			statusmsg INPUT="MESSAGE" MSG="$svcline" COLOR="white"
 
-	done <<< "$svcline"
-	
-	# Print Multiswitch on Dashboard
-	sed -i '/'$dev1.$dev2':'$desc1.$desc2'/d' $rootpath/switchlist
-	
+		done <<< "$svcline"
+		
+	else
+
+		# Remove service
+		systemctl stop $svcname
+		systemctl disable $svcname
+		rm -r $svcfile
+		systemctl daemon-reload
+
+		# Remove from multilist
+		sed -i '/'$multiswitchline'/d' $rootpath/multilist
+		
+		# Show message
+		statusmsg INPUT="HEADER" MSG="Multiswitch gelöscht" COLOR="hotpink"
+		statusmsg INPUT="MESSAGE" MSG="$multiswitchline" COLOR="white"
+	fi
 
 else
 

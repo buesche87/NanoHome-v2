@@ -5,123 +5,101 @@
 
 # Catch Parameters
 device="$2"
-maxpower="$3"
+description="$3"
+maxpower="$4"
 
 # Load config
-. INSTALLDIR/config.cfg
+source INSTALLDIR/config.cfg
 
-# Device Support
-if [ ! "$device" = "all" ]; then
-	. $rootpath/dev_compatibility $device
-fi
+# Get component description
+component="$(grep $description $rootpath/devlist | cut -d'|' -f2 )"
 
 # Environment
-svcname="standbykiller.$device.service"
+svcname="standbykiller_"$device"_"$component".service"
 svclocation="/etc/systemd/system"
 svcfile="$svclocation/$svcname"
-svctemplate="$rootpath/template/standbykiller.service.template"
 
-# help functions
-print_header () {
-	
-	echo "<font size='5' color='white'>Standbykiller</font><font size='5' color='$2'> $1</font><br>"
-	
-}
-
-# Print Standbykiller Details //////////////////////////////////////////////////
-print_cfg () {
-	
-	desc="$(cat $rootpath/devlist | grep $1 | cut -d: -f2 )"
-	mp="$(cat $rootpath/killerlist | grep $1 | cut -d: -f2 )"
-	deschtml="<font color='hotpink'>$desc</font>"
-	
-	if [ ! -z "$mp" ]; then
-		echo -e "<font size='4'>$deschtml: <font color='#c0fcb1'>$mp W</font></font>"
-	else
-		echo -e "<font size='4'>$deschtml: <font color='grey'>inaktiv</font></font>" 
-	fi
-}
-
-
-#/////////////////////////////////////////////////////////////////////////////////////
-# Show Standbykiller
-#/////////////////////////////////////////////////////////////////////////////////////
-if [ "$1" = "show" ] && [ ! -z "$device" ]; then
-
-	if [ "$device" = "all" ]; then
-		active="$( ls $svclocation | grep standbykiller | cut -d. -f2 )"
-	else
-		active="$( ls $svclocation | grep standbykiller.$device | cut -d. -f2 )"
-	fi
-
-	if [ ! -z "$active" ]; then
-		
-		print_header "aktiv" "#c0fcb"
-		
-		while IFS= read -r line; do
-
-			print_cfg "$line"
-
-		done <<< "$active"
-
-	else
-	
-		print_header "inaktiv" "grey"
-
-		if [ "$device" != "all" ]; then
-			print_cfg "$device"
-		fi
-	fi
+if $legacy; then
+	svctemplate="$rootpath/service/standbykiller_legacy.service"
+else
+	svctemplate="$rootpath/service/standbykiller_plus.service"
+fi
 
 
 #/////////////////////////////////////////////////////////////////////////////////////
 # Add Standbykiller
 #/////////////////////////////////////////////////////////////////////////////////////
-elif [ "$1" = "add" ] && [ ! -z "$device" ] && [ ! -z "$maxpower" ]; then
+if [ "$1" = "add" ]; then
 
 	# check if service exists
 	if test -f "$svcfile"; then
 
-		print_header "aktiv" "#c0fcb"
-		print_cfg "$device"
+		statusmsg INPUT="ERROR" MSG="Bereits vorhanden"
 
 	# create new service
 	else
 		
-		desc="$(cat $rootpath/devlist | grep $device | cut -d: -f2 )"
+		# Load device compatibility
+		source $rootpath/devcompatibility $device $component
 		
+		# Copy Service File from a template and modify it	
 		cp $svctemplate $svcfile
 
 		sed -i "s/-dev/$device/" $svcfile
-		sed -i "s/-desc/$desc/" $svcfile
+		sed -i "s/-desc/$description/" $svcfile
 		sed -i "s/-sbpwr/$maxpower/" $svcfile
-
+		
+		# Enable and Start Service
+		systemctl daemon-reload
 		systemctl start $svcname
 		systemctl enable $svcname
 		
-		echo "$device:$maxpower" >> $rootpath/killerlist 
+		# Fill Standbykiller List
+		echo "$description ($device): $maxpower W" >> $rootpath/killerlist 
 		
-		print_header "aktiviert" "#c0fcb"
-		print_cfg "$device"
+		# Show Message
+		statusmsg INPUT="HEADER" MSG="Standbykiller aktiviert" COLOR="hotpink"
+		statusmsg INPUT="MESSAGE" MSG="$description ($device): $maxpower W" COLOR="white"
 
 	fi
 
 #/////////////////////////////////////////////////////////////////////////////////////
+# Show Standbykiller
+#/////////////////////////////////////////////////////////////////////////////////////
+elif [ "$1" = "show" ]; then
+	
+	# Get entry from Standbykiller List
+	if [ "$device" = "all" ]; then
+		killerlist=$(cat $rootpath/killerlist)
+	else
+		killerlist=$(grep $device $rootpath/killerlist)
+	fi
+	
+	# Print List
+	if [ ! -z "$killerlist" ]; then
+		statusmsg INPUT="HEADER" MSG="Standbykiller aktiv" COLOR="#c0fcb"
+		statusmsg INPUT="MESSAGE" MSG="$killerlist" COLOR="white"
+	else
+		statusmsg INPUT="HEADER" MSG="Standbykiller inaktiv" COLOR="grey"
+	fi	
+
+#/////////////////////////////////////////////////////////////////////////////////////
 # Remove Standbykiller
 #/////////////////////////////////////////////////////////////////////////////////////
-elif [ "$1" = "remove" ] && [ ! -z "$device" ]; then
-
+elif [ "$1" = "remove" ]; then
+	
+	# Remove service
 	systemctl stop $svcname
 	systemctl disable $svcname
-
 	rm -r $svcfile
-
 	systemctl daemon-reload
 
-	print_header "deaktiviert" "grey"
-	print_cfg "$device"
-
-	sed -i '/'$device'/d' $rootpath/killerlist
+	# Remove from killerlist
+	sed -i '/'$description'/d' $rootpath/killerlist
+	
+	# Show message
+	statusmsg INPUT="HEADER" MSG="Standbykiller gelöscht" COLOR="hotpink"
+	statusmsg INPUT="MESSAGE" MSG="$description ($device)" COLOR="white"
 
 else
 

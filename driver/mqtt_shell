@@ -3,7 +3,7 @@
 # MQTT_shell - Drop bash commands
 
 # Load config
-source /opt/nanohome/config.cfg
+source INSTALLDIR/config.cfg
 
 # Environment
 input_topic="input"

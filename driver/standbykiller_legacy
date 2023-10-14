@@ -3,15 +3,21 @@
 
 # Catch Parameters
 device="$1"
-maxpower="$2"
+description="$2"
+maxpower="$3"
 
 # Load config
-. INSTALLDIR/config.cfg
+source INSTALLDIR/config.cfg
+
+# Get component description
+component="$(grep $description $rootpath/devlist | cut -d'|' -f2 )"
+
+# Load device compatibility
+source $rootpath/devcompatibility $device $component
 
 # Environment
 devstate="off"
 try="1"
-. $rootpath/dev_compatibility $device
 
 while read curpower; do
 
@@ -26,7 +32,6 @@ while read curpower; do
 	elif (( $(echo "$curpower < $maxpower" | bc -l) )); then
 		
 		# check if device just started
-		
 		if [ "$devstate" == "on" ]; then
 			echo "|[$now] $device: ${curpower}W - standby killed"
 			mosquitto_pub -h $mqtt_server -u $mqtt_system_user -P $mqtt_system_pass -t $control_topic -m $off_command >/dev/null 2>&1			

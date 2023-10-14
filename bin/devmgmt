@@ -6,28 +6,23 @@
 # Catch Parameters
 device="$2"
 description="$3"
-devicetype="$4"
+component="$4"
 
 # Load config
-source /opt/nanohome/config.cfg
+source INSTALLDIR/config.cfg
 
 # Variables
 apikey="$(cat $rootpath/conf/api_key.json | jq -r '.key')"
 random="$(date +%s)"
 
-# Get device ID from http-string
-if [ "$1" = "remove" ]; then
-	device=$(echo "$device" | awk -F'//' '{printf $2}')
-fi
-
 # variables
 option_dev='\\r\\n\\t<option value=\\"'$device'\\">'"$description"'</option>'
-option_dev_http='\\r\\n\\t<option value=\\"http://'$device'\\">'"$description"'</option>'
-devicelist_drop='\\r\\n\\t<option selected disabled>...Geräteliste...</option>'
-timer_drop='name=\\"nanolist_timer\\">\\r\\n\\t<option selected disabled>...Gerät...</option>'
-killer_drop='name=\\"nanolist_stbykill\\">\\r\\n\\t<option selected disabled>...Gerät...</option>'
-switch_if_drop='\\r\\n\\t<option selected disabled>...Wenn...</option>'
-switch_then_drop='\\r\\n\\t<option selected disabled>...Dann...</option>'
+option_devlist='\\r\\n\\t<option value=\\"'$device'\\" data-devlink=\\"http://'$device'\\" data-desc=\\"'$description'\\">'"$description"'</option>'
+devicelist_drop='\\r\\n\\t<option selected disabled>-- Geräteliste --</option>'
+timer_drop='name=\\"nanolist_timer\\">\\r\\n\\t<option value=\\"\\" selected disabled>-- Gerät --</option>'
+killer_drop='name=\\"nanolist_stbykill\\">\\r\\n\\t<option value=\\"\\" selected disabled>-- Gerät --</option>'
+switch_if_drop='\\r\\n\\t<option value=\\"\\" selected disabled>-- Wenn --</option>'
+switch_then_drop='\\r\\n\\t<option value=\\"\\" selected disabled>-- Dann --</option>'
 
 # tempfiles
 mout="/tmp/merge_panel_output.json"
@@ -68,7 +63,7 @@ merge_settings () {
 	jq . $mtemp > $mout
 	
 	# Add option to dashboard
-	sed -i "s#${devicelist_drop}#${devicelist_drop}${option_dev_http}#g" $mout
+	sed -i "s#${devicelist_drop}#${devicelist_drop}${option_devlist}#g" $mout
 	
 	# Upload dashboard
 	update_dashboard
@@ -83,6 +78,7 @@ merge_home () {
 	# Replace device-strings in template
 	sed -i 's/_DEVID_/'$device'/g' $minp
 	sed -i 's/_DESCRIPTION_/'"$description"'/g' $minp
+	sed -i 's/_COMPONENT_/'"$component"'/g' $minp
 	sed -i 's/_RAND_/'$random'/g' $minp
 	
 	# Get home dashboard
@@ -103,7 +99,7 @@ merge_timer () {
 	jq . $mtemp > $mout
 	
 	# Add standbykiller option if device is switch
-	if [[ $devicetype == *switch ]]; then
+	if $pm_device; then
 		sed -i "s#${killer_drop}#${killer_drop}${option_dev}#g" $mout
 	fi
 
@@ -111,8 +107,10 @@ merge_timer () {
 	sed -i "s#${timer_drop}#${timer_drop}${option_dev}#g" $mout
 
 	# add multiswitch option
-	sed -i "s#${switch_if_drop}#${switch_if_drop}${option_dev}#g" $mout
-	sed -i "s#${switch_then_drop}#${switch_then_drop}${option_dev}#g" $mout
+	if [ "$component" != "cover*" ]; then
+		sed -i "s#${switch_if_drop}#${switch_if_drop}${option_dev}#g" $mout
+		sed -i "s#${switch_then_drop}#${switch_then_drop}${option_dev}#g" $mout
+	fi
 	
 	# Upload dashboard
 	update_dashboard
@@ -124,14 +122,9 @@ remove_from_dashboard () {
 	get_dashboard "$1"
 	jq . $mtemp > $mout
 	
-	# if device found
-	if cat $mout | grep "$device" > /dev/null 2>&1 ; then
-		sed -i "s#${option_dev}##g" $mout
-		sed -i "s#${option_dev_http}##g" $mout
-		update_dashboard
-	else
-		rm /tmp/merge_panel_*
-	fi
+	sed -i "s#${option_dev}##g" $mout
+	sed -i "s#${option_devlist}##g" $mout
+	update_dashboard
 }
 
 #/////////////////////////////////////////////////////////////////////////////////////
@@ -139,33 +132,38 @@ remove_from_dashboard () {
 #/////////////////////////////////////////////////////////////////////////////////////
 if [ "$1" = "show" ]; then
 
-	msg="$(cat $rootpath/devlist | awk -F':' '{printf $2 " (" $1 ")"}')"
+	msg="$(cat $rootpath/devlist | awk -F'|' '{printf $3 " (" $1 "/" $2 ")\n"}')"
 	statusmsg INPUT="HEADER" MSG="Geräteliste" COLOR="hotpink"
 	statusmsg INPUT="MESSAGE" MSG="$msg" COLOR="white"
 	exit 0
 
 elif [ "$1" = "add" ]; then
 
-	# add device to devlist
-	echo -e "$device:$description:$devicetype" >> $rootpath/devlist
+	# Load device compatibility
+	source $rootpath/devcompatibility $device $component
 
-	# Check device compatibility
-	source $rootpath/devcompatibility $device
+	# Add device to devlist
+	echo -e "$device|$component|$description" >> $rootpath/devlist
 	
 	# Add device to dashboards
 	merge_settings
-	merge_home
-	merge_timer
 	
-	# Create service if new shelly device
-	if $pluspm; then
-		svcname="$device.service"
-		svcfile="/etc/systemd/system/$svcname"
-		cp $servicetemplate $svcfile
-		sed -i "s/-device/$device/" $svcfile
-		systemctl start $svcname
-		systemctl enable $svcname
+	if [ "$component" != "ht" ]; then
+		merge_home
+		merge_timer
 	fi
+	
+	# servicefiles
+	svcname=$device"_"$component".service"
+	svcfile="/etc/systemd/system/$svcname"
+	
+	# Create device service 
+	cp $servicetemplate $svcfile
+	sed -i "s/-device/$device/" $svcfile
+	sed -i "s/-component/$component/" $svcfile
+	systemctl daemon-reload
+	systemctl start $svcname
+	systemctl enable $svcname
 	
 	# message
 	statusmsg INPUT="HEADER" MSG="Gerät hinzugefügt" COLOR="hotpink"
@@ -174,26 +172,29 @@ elif [ "$1" = "add" ]; then
 
 elif [ "$1" = "remove" ]; then
 
-	# # Remove services and timers
-	# cronman remove "$device"
+	## Remove services and timers
+	# cronman remove "$description"
 	# echo ""
 	# multiswitch remove "$device"
 	# echo ""
 	# standbykiller remove "$device"
 	# echo ""
 
-	# Remove service if new shelly device
-	if $pluspm; then
-		svcname="$device.service"
-		svcfile="/etc/systemd/system/$svcname"
-		systemctl stop $svcname
-		systemctl disable $svcname
-		rm -r "$svcfile"
-		systemctl daemon-reload
-	fi
+	# Get component description
+	component="$(grep $description $rootpath/devlist | cut -d'|' -f2 )"
+
+	# servicefiles
+	svcname=$device"_"$component".service"
+	svcfile="/etc/systemd/system/$svcname"
+
+	# Remove service
+	systemctl stop $svcname
+	systemctl disable $svcname
+	rm -r $svcfile
+	systemctl daemon-reload
 	
 	# Remove from devlist	
-	sed -i '/'$device'/d' $rootpath/devlist
+	sed -i '/'$description'/d' $rootpath/devlist
 	
 	# Remove from dashboards
 	remove_from_dashboard $settings_uid

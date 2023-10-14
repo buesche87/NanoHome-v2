@@ -5,79 +5,75 @@
 
 # Parameters
 devcomp_device="$1"
-rootpath="/opt/nanohome"
-
-# Get device description and type
-dev_desc="$(grep $devcomp_device $rootpath/devlist | cut -d: -f2 )"
-dev_type="$(grep $devcomp_device $rootpath/devlist | cut -d: -f3 )"
-
-# shelly devid uppercase
-devcomp_devtype=$(echo $devcomp_device | cut -d- -f1)
-devcomp_devid=$(echo $devcomp_device | cut -d- -f2)
-device=$devcomp_devtype-$(echo ${devid^^})
+devcomp_component="$2"
+rootpath="INSTALLDIR"
+legacy=false
+pm_device=false
 
 # Legacy Switch
 function legacy-switch () {
 
 	control_topic="shellies/$devcomp_device/relay/0/command"
 	status_topic="shellies/$devcomp_device/relay/0"
-	off_command="off"
-	on_command="on"
+	oncommand="on"
+	offcommand="off"
 	toggle_command="toggle"
-	template="$rootpath/template/legacy_switch.json.template"
+	servicetemplate="$rootpath/service/shelly_legacy.service"
+	jsontemplate="$rootpath/template/legacy_switch.json.template"
+	legacy=true
 }
 
 # Legacy PowerMeter
 function legacy-pm () {
 
-	power_topic="shellies/$devcomp_device/relay/0/power"
 	energy_topic="shellies/$devcomp_device/relay/0/energy"
+	power_topic="shellies/$devcomp_device/relay/0/power"
+	temperature_topic="shellies/$devcomp_device/temperature"
+	pm_device=true
 }
 
 # Plus Switch
 function plus-switch () {
 
-	control_topic="$devcomp_device/command/switch:0"
-	status_topic="$devcomp_device/status/switch:0"
-	status_update="$devcomp_device/status"
+	control_topic="$devcomp_device/command/$1"
+	status_topic="$devcomp_device/status/$1"
+	rpc_topic="$devcomp_device/rpc"
+	status_out_topic="$devcomp_device/status/$1/out"
 	status_command="status_update"
-	off_command="off"
-	on_command="on"
+	oncommand="on"
+	offcommand="off"
 	toggle_command="toggle"
-	template="$rootpath/template/plus_switch.json.template"
+	servicetemplate="$rootpath/service/shelly_plus.service"
+	jsontemplate="$rootpath/template/shelly_plus_switch.json.template"
 }
 
-# Plus PowerMeter
-function plus-pm () {
-	
-	plus-pm=$true
+# Plus Cover
+function plus-cover () {
 
+	control_topic="$devcomp_device/command/$1"
+	status_topic="$devcomp_device/status/$1"
+	rpc_topic=s"$devcomp_device/rpc"
+	status_out_topic="$devcomp_device/status/$1/out"
+	status_command="status_update"
+	oncommand="open"
+	offcommand="close"
+	servicetemplate="$rootpath/service/shelly_plus.service"
+	jsontemplate="$rootpath/template/shelly_plus_cover.json.template"
 }
 
 # Legacy Roller
-function roller () {
+function legacy-roller () {
 
 	control_topic="shellies/$devcomp_device/roller/0/command"
 	pos_control="shellies/$devcomp_device/roller/0/command/pos"
-	pos_return="shellies/$devcomp_device/roller/0/pos"
+	pos_topic="shellies/$devcomp_device/roller/0/pos"
 	power_topic="shellies/$devcomp_device/roller/0/power"
 	energy_topic="shellies/$devcomp_device/roller/0/energy"
-	on_command="open"
-	off_command="close"
-	template="$rootpath/template/legacy_roller.json.template"
-}
-
-# Legacy Shutter
-function shutter () {
-
-	control_topic="shellies/$devcomp_device/roller/0/command"
-	pos_control="shellies/$devcomp_device/roller/0/command/pos"
-	pos_return="shellies/$devcomp_device/roller/0/pos"
-	power_topic="shellies/$devcomp_device/roller/0/power"
-	energy_topic="shellies/$devcomp_device/roller/0/energy"
-	on_command="open"
-	off_command="close"
-	template="$rootpath/template/legacy_shutter.json.template"
+	oncommand="open"
+	offcommand="close"
+	servicetemplate="$rootpath/service/shelly_legacy.service"
+	jsontemplate="$rootpath/template/legacy_roller.json.template"
+	legacy=true
 }
 
 # Legacy Dimmer
@@ -88,9 +84,18 @@ function dimmer () {
 	dim_value="shellies/$devcomp_device/light/0/set"
 	power_topic="shellies/$devcomp_device/light/0/power"
 	energy_topic="shellies/$devcomp_device/light/0/energy"
-	on_command="on"
-	off_command="off"
-	
+	servicetemplate="$rootpath/service/shelly_legacy.service"
+	oncommand="on"
+	offcommand="off"
+	legacy=true
+}
+
+# Legacy Switch
+function sensor () {
+	temperature_topic="shellies/$devcomp_device/sensor/temperature"
+	humidity_topic="shellies/$devcomp_device/sensor/humidity"
+	battery_topic="shellies/$devcomp_device/sensor/battery"
+	servicetemplate="$rootpath/service/shelly_ht.service"
 }
 
 # Main
@@ -105,24 +110,53 @@ elif [[ $devcomp_device == shelly1pm-* ]]; then
 
 elif [[ $devcomp_device == shellyswitch25- ]]; then
 	
-	if [[ $dev_type == *switch ]]; then 
+	if [[ $devcomp_component == switch* ]]; then 
 
 		legacy-switch
 	
-	elif [ "$dev_type" = "roller" ]; then 
+	elif [[ $devcomp_component == cover* ]]; then 
 	
-		roller
+		legacy-roller
 		
-	elif [ "$dev_type" = "roller" ]; then 
+	elif [ "$devcomp_devtype" = "roller" ]; then 
 	
-		shutter
+		legacy-roller
 	
 	fi
 
-elif [[ $devcomp_device == shellyplus1pm-* ]]; then
+elif [[ $devcomp_device == shellyplus1-* ]]; then
+	
+	plus-switch "switch:0"
 
-	plus-switch
-	plus-pm
+elif [[ $devcomp_device == shellyplus1pm-* ]]; then
+	
+	plus-switch "switch:0"
+	pm_device=true
+
+elif [[ $devcomp_device == shelly1mini-* ]]; then
+	
+	plus-switch "switch:0"
+
+elif [[ $devcomp_device == shelly1pmmini-* ]]; then
+	
+	plus-switch "switch:0"
+	pm_device=true
+
+elif [[ $devcomp_device == shellyplus2pm-* ]]; then
+	
+	if [[ $devcomp_component == switch* ]]; then
+		plus-switch $devcomp_component
+	fi
+
+	if [[ $devcomp_component == cover* ]]; then
+		plus-cover $devcomp_component
+	fi
+	
+	pm_device=true
+
+elif [[ $devcomp_device == shellyht-* ]]; then
+	
+	sensor
 
 else
 

@@ -1,5 +1,31 @@
 /* Home */
 
+.newform, .newform[type=password] {
+
+  background-color: rgba(0,0,0,0.1);
+  color: #ffffff;
+  border: 1px solid white;
+  border-radius: 4px;
+  padding-left: 5px;
+  width: 100%;
+  height: 35px;
+  text-align: center;
+  text-align-last: center;
+  font-size:16px;
+}
+
+.newform:disabled {
+
+  color: #717171;
+  border: 1px solid #717171;
+}
+
+button.newform {
+
+  width: 120px;
+}
+
+
 button.home {
 
   background-color: #1a75c9;
@@ -13,129 +39,11 @@ button.home {
   
 }
 
-
-button.nanohome_show {
-
-  color: #030505;
-  border: 2px black;
-  border-radius: 4px;
-  padding-left: 5px;
-  font-size: 16px;
-  width: 70px;
-  height: 35px;
-  background-color: #ebe0ae;
-  
-}
-
-input.nanohome, input[type=password] {
-
-  background-color: #4999e3;
-  color: #ffffff;
-  border: 2px black;
-  border-radius: 4px;
-  padding-left: 5px;
-  width: 100%;
-  height: 35px;
-  text-align: center;
-  font-size: 18px;
-
-}
-
-select.nanohome {
-
-  background-color: #fff4bd;
-  color: #000000;
-  border: 2px black;
-  border-radius: 4px;
-  padding-left: 5px;
-  width: 100%;
-  height: 35px;
-  text-align: center;
-  text-align-last: center;
-  font-size:18px;
-
-}
-
-button.nanohome {
-
-  background-color: #1a75c9;
-  color: #000000;
-  border: 2px black;
-  border-radius: 4px;
-  padding-left: 5px;
-  width: 100%;
-  height: 35px;
-  text-align: center;
-  font-size: 16px;
-  
-}
-
 table.home {
 
   border-style : hidden!important;
   width: 100%;
   height: 100%;
-  
-}
-
-/* Settings */
-
-
-select.form {
-
-  background-color: #4999e3;
-  color: #ffffff;
-  border: 2px black;
-  border-radius: 4px;
-  padding-left: 5px;
-  width: 150px; 
-  height: 35px;
-  text-align: center;
-  text-align-last: center;
-  font-size:18px;
-
-}
-
-select.newform {
-
-  background-color: #4999e3;
-  color: #ffffff;
-  border: 2px black;
-  border-radius: 4px;
-  padding-left: 5px;
-  width: 150px; 
-  height: 35px;
-  text-align: center;
-  text-align-last: center;
-  font-size:18px;
-
-}
-
-input.form {
-
-  background-color: #4999e3;
-  color: #ffffff;
-  border: 2px black;
-  border-radius: 4px;
-  padding-left: 5px;
-  width: 100px;
-  height: 35px;
-  text-align: center;
-  font-size: 18px;
-  
-}
-
-button.form {
-
-  background-color: #1a75c9;
-  color: #000000;
-  border: 2px solid black;
-  border-radius: 5px;
-  padding-left: 5px;
-  font-size: 16px;
-  width: 70px;
-  height: 35px;
-  text-align: center;
   
 }
 
@@ -203,7 +111,6 @@ div.slider {
 	
 }
 
-
 /* Shutter */
 
 td.shutter {
@@ -226,7 +133,6 @@ button.shutter {
   text-align: center;
   
 }
-
 
 /* Checkboxes */
 /* Customize the label (the container) */

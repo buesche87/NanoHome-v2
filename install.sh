@@ -12,7 +12,6 @@ fi
 . ./config.cfg
 
 # test if user exists
-
 if getent passwd $linuxuser > /dev/null ; then
  
  echo "use existing user \"$linuxuser\""
@@ -24,204 +23,219 @@ else
 
 fi
 
+##################################
+# Filecopy
+##################################
+
 # create directories
+mkdir -p $rootpath/bin/
+mkdir -p $rootpath/conf/
+mkdir -p $rootpath/driver/
+mkdir -p $rootpath/service/
+mkdir -p $rootpath/template/
+mkdir -p /tmp/nanohome/dashboards
+mkdir -p /tmp/nanohome/service
 
- mkdir -p $rootpath/bin/
- mkdir -p $rootpath/conf/
- mkdir -p $rootpath/driver/
- mkdir -p $rootpath/sensor/
- mkdir -p $rootpath/template/
+# Create list files
+touch $rootpath/devlist
+touch $rootpath/cronlist
+touch $rootpath/killerlist
+touch $rootpath/multilist
 
-# general
+# Copy files
+cp ./config.cfg $rootpath
+cp ./devcompatibility $rootpath
+cp ./bin/* $rootpath/bin/
+cp ./driver/* $rootpath/driver/
+cp ./template/* $rootpath/template/
+cp ./dashboards/* /tmp/nanohome/dashboards
+cp ./service/* /tmp/nanohome/service
+cp -R ./res/* /usr/share/grafana/public/
 
- touch $rootpath/devlist
- cp ./config.cfg $rootpath
- cp ./dev_compatibility $rootpath
- cp ./template/* $rootpath/template/
+# Change installation parameters
+sed -i "s#INSTALLDIR#$rootpath#" $rootpath/*
+sed -i "s#INSTALLDIR#$rootpath#" $rootpath/bin/*
+sed -i "s#INSTALLDIR#$rootpath#" $rootpath/driver/*
+sed -i "s#;disable_sanitize_html.*#disable_sanitize_html = true#g" /etc/grafana/grafana.ini
+sed -i "s#INSTALLDIR#$rootpath#" /tmp/nanohome/service/*
+sed -i "s#SVCUSER#$linuxuser#" /tmp/nanohome/service/*
 
- sed -i "s#INSTALLDIR#$rootpath#" $rootpath/*
+# Copy services
+cp /tmp/nanohome/service/* /etc/systemd/system/
 
-# prepare influxdb database
+# Make binaries executable
+chmod +x $rootpath/bin/*
+chmod +x $rootpath/driver/*
 
- influx -execute "CREATE DATABASE ${influxdb_database}"
- influx -execute "CREATE USER ${influxdb_admin} WITH PASSWORD '${influxdb_adminpass}' WITH ALL PRIVILEGES"
- influx -execute "CREATE USER ${influxdb_system_user} WITH PASSWORD '${influxdb_system_pass}'"
- influx -execute "GRANT ALL ON ${influxdb_database} TO ${influxdb_system_user}"
+# Link binaries
+ln -sf $rootpath/bin/* /usr/local/bin/
+
+##################################
+# Mosquitto
+##################################
 
 # configure mosquitto
-
- touch /etc/mosquitto/conf.d/nanohome.conf
- echo password_file /etc/mosquitto/passwd > /etc/mosquitto/conf.d/nanohome.conf
- echo allow_anonymous false >> /etc/mosquitto/conf.d/nanohome.conf
- echo listener 1883 >> /etc/mosquitto/conf.d/nanohome.conf
- echo listener 1884 >> /etc/mosquitto/conf.d/nanohome.conf
- echo protocol websockets >> /etc/mosquitto/conf.d/nanohome.conf
+touch /etc/mosquitto/conf.d/nanohome.conf
+echo password_file /etc/mosquitto/passwd > /etc/mosquitto/conf.d/nanohome.conf
+echo allow_anonymous false >> /etc/mosquitto/conf.d/nanohome.conf
+echo listener 1883 >> /etc/mosquitto/conf.d/nanohome.conf
+echo listener 1884 >> /etc/mosquitto/conf.d/nanohome.conf
+echo protocol websockets >> /etc/mosquitto/conf.d/nanohome.conf
 
 # create mosquitto user
+touch /etc/mosquitto/passwd
+mosquitto_passwd -U /etc/mosquitto/passwd
+mosquitto_passwd -b /etc/mosquitto/passwd $mqtt_system_user $mqtt_system_pass
+mosquitto_passwd -b /etc/mosquitto/passwd $mqtt_grafana_user $mqtt_grafana_pass
+mosquitto_passwd -b /etc/mosquitto/passwd $mqtt_shelly_user $mqtt_shelly_pass
+mosquitto_passwd -b /etc/mosquitto/passwd $mqtt_dash_user $mqtt_dash_pass
 
- touch /etc/mosquitto/passwd
- mosquitto_passwd -U /etc/mosquitto/passwd
- mosquitto_passwd -b /etc/mosquitto/passwd $mqtt_system_user $mqtt_system_pass
+##################################
+# InfluxDB
+##################################
 
-# create mosquitto user for external access
+# Setup InfluxDB 
+influx setup \
+  --username $influxdb_admin \
+  --password $influxdb_adminpass \
+  --token $influxdb_token \
+  --org $influxdb_org \
+  --bucket $influxdb_bucket \
+  --force
 
- mosquitto_passwd -b /etc/mosquitto/passwd $mqtt_grafana_user $mqtt_grafana_pass
- mosquitto_passwd -b /etc/mosquitto/passwd $mqtt_shelly_user $mqtt_shelly_pass
- mosquitto_passwd -b /etc/mosquitto/passwd $mqtt_dash_user $mqtt_dash_pass
+# Create InfluxDB configuration profile
+influx config create \
+  --config-name $influxdb_config \
+  --host-url $influxdb_url \
+  --org $influxdb_org \
+  --token $influxdb_token \
+  --active
 
-# copy binaries & make executable
+##################################
+# Grafana
+##################################
 
- cp ./bin/* $rootpath/bin/
- chmod +x $rootpath/bin/*
- ln -sf $rootpath/bin/* /usr/local/bin/
+# Create Grafana Service Account
+create_serviceaccount()
+{
+  cat <<EOF
+{
+  "name":"nanohome",
+  "role":"Admin",
+  "isDisabled":false
+}
+EOF
+}
 
- sed -i "s#INSTALLDIR#$rootpath#" $rootpath/bin/*
+curl -i \
+-H "Accept: application/json" \
+-H "Content-Type:application/json" \
+-X POST --data "$(create_serviceaccount)" "http://admin:admin@$grafana_url/api/serviceaccounts"
 
-# copy drivers
+# Create Serviceaccount Token
+token_json="$(curl -X POST -H "Content-Type: application/json" -d '{"name":"nanohome"}' http://admin:admin@$grafana_url/api/serviceaccounts/1/tokens)"
+echo "$token_json" | sudo tee $rootpath/conf/sa_token.json
+sa_token="$(echo "$token_json" | jq -r '.key')"
 
- cp ./driver/* $rootpath/driver/
- chmod +x $rootpath/driver/*
-
- sed -i "s#INSTALLDIR#$rootpath#" $rootpath/driver/*
- sed -i "s#INFLUXDATABASE#$influxdb_database#" $rootpath/driver/*
- sed -i "s#DATABASEUSER#$influxdb_system_user#" $rootpath/driver/*
- sed -i "s#DATABASEPASS#$influxdb_system_pass#" $rootpath/driver/*
- sed -i "s#MQTTSYSTEMUSER#$mqtt_system_user#" $rootpath/driver/*
- sed -i "s#MQTTSYSTEMPASS#$mqtt_system_pass#" $rootpath/driver/*
- 
-# create services
-
- cp ./service/* /etc/systemd/system/
- sed -i "s#INSTALLDIR#$rootpath#" /etc/systemd/system/mqtt_*
- sed -i "s#SVCUSER#$linuxuser#" /etc/systemd/system/mqtt_*
-
- 
-# Grafana setup
-
-# copy ressources
- 
- cp -R ./res/* /usr/share/grafana/public/
- sed -i "s#;disable_sanitize_html.*#disable_sanitize_html = true#g" /etc/grafana/grafana.ini
- 
-# create datasource
- 
-  generate_datasource()
+# Create InfluxDB datasource in Grafana
+generate_datasource()
 {
   cat <<EOF
 {
   "name":"InfluxDB",
   "type":"influxdb",
-  "url":"http://localhost:8086",
-  "user":"$influxdb_system_user",
-  "password":"$influxdb_system_pass",
-  "database":"$influxdb_database",
+  "typeName":"InfluxDB",
   "access":"proxy",
+  "url":"$influxdb_url",
+  "jsonData":{"defaultBucket":"$influxdb_bucket","organization":"$influxdb_org","version":"Flux","tlsSkipVerify":true},
+  "secureJsonData":{"token":"$influxdb_token"},
   "isDefault":true,
   "readOnly":false
 }
 EOF
 }
+
+curl -i \
+-H "Accept: application/json" \
+-H "Content-Type:application/json" \
+-H "Authorization: Bearer $sa_token" \
+-X POST --data "$(generate_datasource)" "http://$grafana_url/api/datasources"
+
+# Create Grafana home dashboard
+sed -i 's#var user = \\\"\\\"#var user = \\\"'$mqtt_grafana_user'\\\"#' /tmp/nanohome/dashboards/home.json
+sed -i 's#var pwd = \\\"\\\"#var pwd = \\\"'$mqtt_grafana_pass'\\\"#' /tmp/nanohome/dashboards/home.json
  
- curl -i \
- -H "Accept: application/json" \
- -H "Content-Type:application/json" \
- -X POST --data "$(generate_datasource)" "http://admin:admin@$grafana_url/api/datasources"
+curl -i \
+-H "Accept: application/json" \
+-H "Content-Type:application/json" \
+-H "Authorization: Bearer $sa_token" \
+-X POST -d @/tmp/nanohome/dashboards/home.json "http://$grafana_url/api/dashboards/db"
+
+# Create Grafana settings dashboard
+sed -i 's#var user = \\\"\\\"#var user = \\\"'$mqtt_grafana_user'\\\"#' /tmp/nanohome/dashboards/settings.json
+sed -i 's#var pwd = \\\"\\\"#var pwd = \\\"'$mqtt_grafana_pass'\\\"#' /tmp/nanohome/dashboards/settings.json
  
-# create api key
+curl -i \
+-H "Accept: application/json" \
+-H "Content-Type:application/json" \
+-H "Authorization: Bearer $sa_token" \
+-X POST -d @/tmp/nanohome/dashboards/settings.json "http://$grafana_url/api/dashboards/db"
  
- api_json="$(curl -X POST -H "Content-Type: application/json" -d '{"name":"Nanohome System", "role": "Admin"}' http://admin:admin@$grafana_url/api/auth/keys)"
- echo "$api_json" | sudo tee $rootpath/conf/api_key.json
- api_key="$(echo "$api_json" | jq -r '.key')"
+# Create Grafana timer dashboard
+sed -i 's#var user = \\\"\\\"#var user = \\\"'$mqtt_grafana_user'\\\"#' /tmp/nanohome/dashboards/timer.json
+sed -i 's#var pwd = \\\"\\\"#var pwd = \\\"'$mqtt_grafana_pass'\\\"#' /tmp/nanohome/dashboards/timer.json
+
+curl -i \
+-H "Accept: application/json" \
+-H "Content-Type:application/json" \
+-H "Authorization: Bearer $sa_token" \
+-X POST -d @/tmp/nanohome/dashboards/timer.json "http://$grafana_url/api/dashboards/db"
  
-# create dashboards 
- 
- cp ./dashboards/* /tmp/
+# Create Grafana measurement dashboard
+# 
+# curl -i \
+# -H "Accept: application/json" \
+# -H "Content-Type:application/json" \
+# -H "Authorization: Bearer $sa_token" \
+# -X POST -d @/tmp/nanohome/dashboards/measurements.json "http://$grafana_url/api/dashboards/db"
+#
+# Create Grafana carpetplot dashboard
+# 
+# curl -i \
+# -H "Accept: application/json" \
+# -H "Content-Type:application/json" \
+# -H "Authorization: Bearer $sa_token" \
+# -X POST -d @/tmp/nanohome/dashboards/carpetplot.json "http://$grafana_url/api/dashboards/db"   
 
-# home
+# Set Grafana home dashboard
+home_id="$(curl -X GET -H "Authorization: Bearer $sa_token" -H "Content-Type: application/json" http://$grafana_url/api/dashboards/uid/$home_uid | jq -r '.dashboard.id')"
 
- sed -i 's#var user = \\\"\\\"#var user = \\\"'$mqtt_grafana_user'\\\"#' /tmp/home.json
- sed -i 's#var pwd = \\\"\\\"#var pwd = \\\"'$mqtt_grafana_pass'\\\"#' /tmp/home.json
- 
- curl -i \
- -H "Accept: application/json" \
- -H "Content-Type:application/json" \
- -X POST -d @/tmp/home.json "http://admin:admin@$grafana_url/api/dashboards/db"
- 
- 
-# settings
+curl -i \
+-H "Accept: application/json" \
+-H "Content-Type:application/json" \
+-H "Authorization: Bearer $sa_token" \
+-X PUT -d '{"homeDashboardId":'$home_id'}' http://$grafana_url/api/org/preferences
 
- sed -i 's#var user = \\\"\\\"#var user = \\\"'$mqtt_grafana_user'\\\"#' /tmp/settings.json
- sed -i 's#var pwd = \\\"\\\"#var pwd = \\\"'$mqtt_grafana_pass'\\\"#' /tmp/settings.json
- 
- curl -i \
- -H "Accept: application/json" \
- -H "Content-Type:application/json" \
- -X POST -d @/tmp/settings.json "http://admin:admin@$grafana_url/api/dashboards/db"
- 
-# timer
+##################################
+# Postprocessing
+##################################
 
- sed -i 's#var user = \\\"\\\"#var user = \\\"'$mqtt_grafana_user'\\\"#' /tmp/timer.json
- sed -i 's#var pwd = \\\"\\\"#var pwd = \\\"'$mqtt_grafana_pass'\\\"#' /tmp/timer.json
+# Change user running nanohome
+chown -R $linuxuser:$linuxuser $rootpath
 
- curl -i \
- -H "Accept: application/json" \
- -H "Content-Type:application/json" \
- -X POST -d @/tmp/timer.json "http://admin:admin@$grafana_url/api/dashboards/db"
- 
-# measurements
- 
- curl -i \
- -H "Accept: application/json" \
- -H "Content-Type:application/json" \
- -X POST -d @/tmp/measurements.json "http://admin:admin@$grafana_url/api/dashboards/db"
+# Install Grafana Plugins
+/usr/share/grafana/bin/grafana-cli plugins install grafana-clock-panel
+/usr/share/grafana/bin/grafana-cli plugins install petrslavotinek-carpetplot-panel
 
-# carpetplot
- 
- curl -i \
- -H "Accept: application/json" \
- -H "Content-Type:application/json" \
- -X POST -d @/tmp/carpetplot.json "http://admin:admin@$grafana_url/api/dashboards/db"   
+# Prepare Crontab 
+echo "# Nanohome Crontabs" >> /etc/crontab
 
-# change home dashboards
+# Cleanup
+rm -rf /tmp/*.json
 
- home_id="$(curl -X GET -H "Authorization: Bearer $api_key" -H "Content-Type: application/json" http://$grafana_url/api/dashboards/uid/$home_uid | jq -r '.dashboard.id')"
- curl -X PUT -H "Content-Type: application/json" -d '{"homeDashboardId":'$home_id'}' http://admin:admin@$grafana_url/api/org/preferences
-
-# install grafana backup
-
- pip3 install "pip>=20"
-
- git clone https://github.com/ysde/grafana-backup-tool.git $rootpath/grafana-backup-tool
-
- cd $rootpath/grafana-backup-tool
- pip3 install $rootpath/grafana-backup-tool
- cd -
- 
- gbt_conf="$rootpath/grafana-backup-tool/grafana_backup/conf/grafanaSettings.json"
-
- echo "$( jq '.grafana.token = "'$api_key'"' $gbt_conf )" > $gbt_conf
- echo "$( jq '.general.backup_dir = "'$backupdir'"' $gbt_conf )" > $gbt_conf
- echo "$( jq '.general.verify_ssl = false' $gbt_conf )" > $gbt_conf
-
- sed -i "s#python#python3#" $rootpath/grafana-backup-tool/backup_grafana.sh
- sed -i "s#python#python3#" $rootpath/grafana-backup-tool/restore_grafana.sh
-
-
- 
-# post processing
- 
- rm -rf /tmp/*.json
- chown -R $linuxuser:$linuxuser $rootpath
- 
- /usr/share/grafana/bin/grafana-cli plugins install grafana-clock-panel
- /usr/share/grafana/bin/grafana-cli plugins install petrslavotinek-carpetplot-panel
-
-# start services
-
- systemctl restart influxdb
- systemctl restart grafana-server
- systemctl restart mosquitto
- systemctl start mqtt_shell.service
- systemctl enable mqtt_shell.service
-
- 
+# Start services
+systemctl restart influxdb
+systemctl restart grafana-server
+systemctl restart mosquitto
+systemctl start mqtt_shell.service
+systemctl enable mqtt_shell.service

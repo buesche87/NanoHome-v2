@@ -1,0 +1,66 @@
+#!/bin/bash
+#/////////////////////////////////////////////////////////////////////////////////////
+# Shelly MQTT Status 
+#/////////////////////////////////////////////////////////////////////////////////////
+
+# Catch parameters
+device="$1"
+component="$2"
+
+# Load config
+source INSTALLDIR/config.cfg
+
+# Get device description
+desc=$device"|"$component
+devdesc="$(grep $desc $rootpath/devlist | cut -d'|' -f3 )"
+devdesc=${devdesc// /_}
+
+# Device Support
+source $rootpath/devcompatibility $device $component
+
+# Main
+while /bin/true; do
+	
+	#Get Status
+	while read status; do
+		if [ "$status" = "on" ]; then status=1; statustxt="On"; fi
+		if [ "$status" = "off" ]; then status=0; statustxt="Off"; fi
+		echo "Status: $status"
+		influx write -b $influxdb_bucket -p s "$devdesc Status=$status"
+	done < <(mosquitto_sub -h $mqtt_server -u $mqtt_system_user -P $mqtt_system_pass -t $status_topic -q 2) &
+	
+	# Get Energy
+	if [ "$energy_topic" ]; then
+		while read energy; do
+			echo "Energy: $energy Wh"
+			influx write -b $influxdb_bucket -p s "$devdesc Energy=$energy"
+		done < <(mosquitto_sub -h $mqtt_server -u $mqtt_system_user -P $mqtt_system_pass -t $energy_topic -q 2) &
+	fi
+	
+	# Get Power
+	if [ "$power_topic" ]; then
+		while read power; do
+			echo "Power: $power W"
+			influx write -b $influxdb_bucket -p s "$devdesc Power=$power"
+		done < <(mosquitto_sub -h $mqtt_server -u $mqtt_system_user -P $mqtt_system_pass -t $power_topic -q 2) &
+	fi
+	
+	# Get Temperature
+	if [ "$temperature_topic" ]; then
+		while read temperature; do
+			echo "Temperature: $temperature °C"
+			influx write -b $influxdb_bucket -p s "$devdesc Temperature=$temperature"
+		done < <(mosquitto_sub -h $mqtt_server -u $mqtt_system_user -P $mqtt_system_pass -t $temperature_topic -q 2) &
+	fi
+
+	# Get Position
+	if [ "$pos_topic" ]; then
+		while read position; do
+			echo "Temperature: $temperature °C"
+			influx write -b $influxdb_bucket -p s "$devdesc Position=$position"
+		done < <(mosquitto_sub -h $mqtt_server -u $mqtt_system_user -P $mqtt_system_pass -t $pos_topic -q 2) &
+	fi
+	
+	sleep infinity
+
+done

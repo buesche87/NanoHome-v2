@@ -1,13 +1,12 @@
 [Unit]
 Wants=mosquitto.service
-Description=MQTT-Shell Service
+Description=Standbykiller Legacy -desc -sbpwr W
 
 [Service]
 Type=simple
 user=SVCUSER
 group=SVCUSER
-ExecStartPre=/bin/sleep 5
-ExecStart=/bin/bash INSTALLDIR/driver/mqtt_shell -s
+ExecStart=/bin/bash INSTALLDIR/driver/standbykiller_legacy -dev -desc -sbpwr
 Restart=always
 
 [Install]

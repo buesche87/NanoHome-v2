@@ -1,0 +1,19 @@
+{
+  "datasource": null,
+  "content": "<center><font class=\"header\">_DESCRIPTION_</font></center>\n<p>\n\n<div class=\"slider\">\n\n\t<font class=\"home\">▼ &nbsp;</font>\n\t<input id=\"_RAND_\" type=\"range\" min=\"0\" max=\"100\" style=\"white-space: nowrap\" onchange=\"update_value__RAND_()\" />\n\t<font class=\"home\">&nbsp; ▲</font>\n\n</div>\n\n<script>\n\nvar update_value__RAND_ = function() { \n\n\tvar val__RAND_ = document.getElementById(\"_RAND_\").value; \n\tvar pos__RAND_ = \"pos,\" + val__RAND_\n\tpublish(pos__RAND_, '_DEVID_/command/_COMPONENT_', '_DEVID_/status/_COMPONENT_/out', '_DESCRIPTION_', 2); \n\n}\n\n</script>",
+  "gridPos": {
+    "h": 4,
+    "w": 12,
+    "x": 0,
+    "y": 22
+  },
+  "id": _RAND_,
+  "links": [],
+  "mode": "html",
+  "options": {},
+  "timeFrom": null,
+  "timeShift": null,
+  "title": "",
+  "transparent": true,
+  "type": "text"
+}
