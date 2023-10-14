@@ -140,7 +140,7 @@ EOF
 curl -i \
 -H "Accept: application/json" \
 -H "Content-Type:application/json" \
--X POST --data "$(create_serviceaccount)" "http://admin:admin@$grafana_url/api/serviceaccounts"
+-X POST -d "$(create_serviceaccount)" "http://admin:admin@$grafana_url/api/serviceaccounts"
 
 # Create Serviceaccount Token
 token_json="$(curl -X POST -H "Content-Type: application/json" -d '{"name":"nanohome"}' http://admin:admin@$grafana_url/api/serviceaccounts/2/tokens)"
