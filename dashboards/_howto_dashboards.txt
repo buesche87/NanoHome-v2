@@ -1,6 +1,0 @@
-curl -X GET -H "Authorization: Bearer xxx" -H "Content-Type: application/json" http://localhost:3000/api/dashboards/uid/kwvFMgZnz > /tmp/dashboard.json
-
-
-meta entfernen
-version auf 1
-id auf null
