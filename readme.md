@@ -68,7 +68,7 @@ git clone https://github.com/buesche87/NanoHome-v2.git
 
 # Edit NanoHome Config
 ```bash
-cd NanoHome
+cd NanoHome-v2
 cp config.cfg.example config.cfg
 ```
 
