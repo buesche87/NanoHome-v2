@@ -97,7 +97,7 @@ elif [ "$1" = "remove" ]; then
 
 		statusmsg INPUT="HEADER" MSG="Multiswitch gelöscht" COLOR="grey"
 
-		$svcline=$(ls $svclocation | grep multiswitch | grep $device1)
+		svcline=$(ls $svclocation | grep multiswitch | grep $device1)
 
 		# Delete every Multiswitch
 		while IFS= read -r line
