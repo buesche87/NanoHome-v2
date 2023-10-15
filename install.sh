@@ -11,6 +11,11 @@ fi
 # load settings
 source ./config.cfg
 
+echo "##################################"
+echo "# Create user for NanoHome       #"
+echo "##################################"
+echo ""
+
 # test if user exists
 if getent passwd $linuxuser > /dev/null ; then
  
@@ -23,9 +28,10 @@ else
 
 fi
 
-##################################
-# Filecopy
-##################################
+echo "##################################"
+echo "# Create files and direcories    #"
+echo "##################################"
+echo ""
 
 # create directories
 mkdir -p $rootpath/bin/
@@ -41,6 +47,11 @@ touch $rootpath/devlist
 touch $rootpath/cronlist
 touch $rootpath/killerlist
 touch $rootpath/multilist
+
+echo "##################################"
+echo "# Copy files                     #"
+echo "##################################"
+echo ""
 
 # Copy files
 cp ./config.cfg $rootpath
@@ -81,9 +92,10 @@ chmod +x $rootpath/driver/*
 # Link binaries
 ln -sf $rootpath/bin/* /usr/local/bin/
 
-##################################
-# Mosquitto
-##################################
+echo "##################################"
+echo "# Configure mosquitto            #"
+echo "##################################"
+echo ""
 
 # configure mosquitto
 touch /etc/mosquitto/conf.d/nanohome.conf
@@ -101,9 +113,10 @@ mosquitto_passwd -b /etc/mosquitto/passwd $mqtt_grafana_user $mqtt_grafana_pass
 mosquitto_passwd -b /etc/mosquitto/passwd $mqtt_shelly_user $mqtt_shelly_pass
 mosquitto_passwd -b /etc/mosquitto/passwd $mqtt_dash_user $mqtt_dash_pass
 
-##################################
-# InfluxDB
-##################################
+echo "##################################"
+echo "# Configure InfluxDB             #"
+echo "##################################"
+echo ""
 
 # Setup InfluxDB 
 influx setup \
@@ -122,9 +135,10 @@ influx config create \
   --token $influxdb_token \
   --active
 
-##################################
-# Grafana
-##################################
+echo "##################################"
+echo "# Configure Grafana              #"
+echo "##################################"
+echo ""
 
 # Create Grafana Service Account
 create_serviceaccount()
@@ -171,6 +185,12 @@ curl -i \
 -H "Content-Type:application/json" \
 -H "Authorization: Bearer $sa_token" \
 -X POST -d "$(generate_datasource)" "http://$grafana_url/api/datasources"
+
+
+echo "##################################"
+echo "# Create dashboards              #"
+echo "##################################"
+echo ""
 
 # Create Grafana home dashboard
 sed -i 's#var user = \\\"\\\"#var user = \\\"'$mqtt_grafana_user'\\\"#' /tmp/nanohome/dashboards/home.json
@@ -227,9 +247,10 @@ curl -i \
 -H "Authorization: Bearer $sa_token" \
 -X PUT -d '{"homeDashboardId":'$home_id'}' http://$grafana_url/api/org/preferences
 
-##################################
-# Postprocessing
-##################################
+echo "##################################"
+echo "# Postprocessing                 #"
+echo "##################################"
+echo ""
 
 # Change user running nanohome
 chown -R $linuxuser:$linuxuser $rootpath
@@ -243,6 +264,11 @@ echo "# Nanohome Crontabs" >> /etc/crontab
 
 # Cleanup
 rm -rf /tmp/*.json
+
+echo "##################################"
+echo "# Start services                 #"
+echo "##################################"
+echo ""
 
 # Start services
 systemctl restart influxdb

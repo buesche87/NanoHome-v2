@@ -74,10 +74,10 @@ if [ "$1" = "add" ]; then
 elif [ "$1" = "show" ]; then
 
 	# Get entry from Multiswitch List
-	if [ "$device" = "all" ]; then
+	if [ "$device1" = "all" ]; then
 		multilist=$(cat $rootpath/multilist)
 	else
-		multilist=$(grep $multiswitchline $rootpath/multilist)
+		multilist=$(grep "$multiswitchline" $rootpath/multilist)
 	fi
 
 	# Print List
