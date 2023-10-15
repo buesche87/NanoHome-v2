@@ -61,7 +61,7 @@ sudo systemctl start mosquitto
 git clone https://github.com/buesche87/NanoHome-v2.git
 ```
 
-## Edit NanoHome Config
+## Edit NanoHome config
 ```bash
 cd NanoHome-v2
 cp config.cfg.example config.cfg
