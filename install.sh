@@ -230,20 +230,18 @@ curl -i \
 -X POST -d @/tmp/nanohome/dashboards/timer.json "http://$grafana_url/api/dashboards/db"
  
 # Create Grafana measurement dashboard
-# 
-# curl -i \
-# -H "Accept: application/json" \
-# -H "Content-Type:application/json" \
-# -H "Authorization: Bearer $sa_token" \
-# -X POST -d @/tmp/nanohome/dashboards/measurements.json "http://$grafana_url/api/dashboards/db"
-#
+curl -i \
+-H "Accept: application/json" \
+-H "Content-Type:application/json" \
+-H "Authorization: Bearer $sa_token" \
+-X POST -d @/tmp/nanohome/dashboards/measurements.json "http://$grafana_url/api/dashboards/db"
+
 # Create Grafana carpetplot dashboard
-# 
-# curl -i \
-# -H "Accept: application/json" \
-# -H "Content-Type:application/json" \
-# -H "Authorization: Bearer $sa_token" \
-# -X POST -d @/tmp/nanohome/dashboards/carpetplot.json "http://$grafana_url/api/dashboards/db"   
+curl -i \
+-H "Accept: application/json" \
+-H "Content-Type:application/json" \
+-H "Authorization: Bearer $sa_token" \
+-X POST -d @/tmp/nanohome/dashboards/carpetplot.json "http://$grafana_url/api/dashboards/db"   
 
 # Set Grafana home dashboard
 home_id="$(curl -X GET -H "Authorization: Bearer $sa_token" -H "Content-Type: application/json" http://$grafana_url/api/dashboards/uid/$home_uid | jq -r '.dashboard.id')"
