@@ -43,12 +43,6 @@ sudo apt update
 sudo apt install grafana mosquitto mosquitto-clients git openssl jq
 ```
 
-## Install dependencies
-Not sure if needed
-```bash
-sudo apt install build-essential libfreetype6-dev libjpeg-dev tree bc
-```
-
 # Start Services
 ```bash
 sudo systemctl enable influxdb
