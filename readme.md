@@ -1,11 +1,13 @@
 # NanoHome v2
 
+A simple home automation solution for shelly devices with focus on a nice dashboard that can be presented on a tablet
 This is a one-man show, may there are bugs...
 
 Version 2 changes:
 
 - New UI, minimalist approach
 - Completely rewritten
+- Add support for Shelly Plus devices
 - Adopt to InfluxDB v2
 - Adopt to Grafana service accounts
 - Installer should be working now
