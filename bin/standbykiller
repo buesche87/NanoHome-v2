@@ -97,7 +97,7 @@ elif [ "$1" = "remove" ]; then
 	sed -i '/'$description'/d' $rootpath/killerlist
 
 	# Show message
-	statusmsg INPUT="HEADER" MSG="Standbykiller gelöscht" COLOR="grey"
+	statusmsg INPUT="HEADER" MSG="Standbykiller deaktiviert" COLOR="grey"
 	statusmsg INPUT="MESSAGE" MSG="$description ($device)" COLOR="white"
 
 #/////////////////////////////////////////////////////////////////////////////////////

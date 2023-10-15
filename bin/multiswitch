@@ -100,7 +100,7 @@ elif [ "$1" = "remove" ]; then
 
 		if [ ! -z "$svcline" ]; then
 		
-			statusmsg INPUT="HEADER" MSG="Multiswitch gelöscht" COLOR="grey"
+			statusmsg INPUT="HEADER" MSG="Multiswitch deaktiviert" COLOR="grey"
 			
 			# Delete every Multiswitch
 			while IFS= read -r line
@@ -143,7 +143,7 @@ elif [ "$1" = "remove" ]; then
 		sed -i "/$multiswitchline/d" $rootpath/multilist
 
 		# Show message
-		statusmsg INPUT="HEADER" MSG="Multiswitch gelöscht" COLOR="grey"
+		statusmsg INPUT="HEADER" MSG="Multiswitch deaktiviert" COLOR="grey"
 		statusmsg INPUT="MESSAGE" MSG="$multiswitchline" COLOR="white"
 	fi
 
