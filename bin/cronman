@@ -98,7 +98,7 @@ elif [ "$1" = "remove" ]; then
 	# Load device compatibility
 	source $rootpath/devcompatibility $device $component
 
-	sed -i '/'$description'/d' $rootpath/cronlist
+	sed -i "/$description ($device)/d" $rootpath/cronlist
 	sed -i '\|'$control_topic'|d' /etc/crontab
 
 	statusmsg INPUT="HEADER" MSG="Schaltuhr deaktiviert" COLOR="grey"

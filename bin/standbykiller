@@ -57,7 +57,7 @@ if [ "$1" = "add" ]; then
 		echo "$description ($device): $maxpower W" >> $rootpath/killerlist
 
 		# Show Message
-		statusmsg INPUT="HEADER" MSG="Standbykiller aktiviert" COLOR="hotpink"
+		statusmsg INPUT="HEADER" MSG="Standbykiller aktiviert" COLOR="#c0fcb"
 		statusmsg INPUT="MESSAGE" MSG="$description ($device): $maxpower W" COLOR="white"
 
 	fi

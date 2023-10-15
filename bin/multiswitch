@@ -62,7 +62,7 @@ if [ "$1" = "add" ]; then
 		echo "$multiswitchline" >> $rootpath/multilist
 
 		# Show Message
-		statusmsg INPUT="HEADER" MSG="Multiswitch aktiviert" COLOR="hotpink"
+		statusmsg INPUT="HEADER" MSG="Multiswitch aktiviert" COLOR="#c0fcb"
 		statusmsg INPUT="MESSAGE" MSG="$multiswitchline" COLOR="white"
 
 	fi
@@ -94,11 +94,14 @@ elif [ "$1" = "show" ]; then
 elif [ "$1" = "remove" ]; then
 
 	if [ "$device2" == "" ]; then
-
-		statusmsg INPUT="HEADER" MSG="Multiswitch gelöscht" COLOR="grey"
+		
+		# Get all multiswitches with device to be removed
 		svcline=$(ls $svclocation | grep multiswitch | grep $device1)
 
 		if [ ! -z "$svcline" ]; then
+		
+			statusmsg INPUT="HEADER" MSG="Multiswitch gelöscht" COLOR="grey"
+			
 			# Delete every Multiswitch
 			while IFS= read -r line
 			do
@@ -107,11 +110,8 @@ elif [ "$1" = "remove" ]; then
 				systemctl disable "$line"
 				rm -r "$svclocation/$line"
 				systemctl daemon-reload
-
-				# Remove from multilist
-				sed -i "/$line/d" $rootpath/multilist
-				
-				# Show message
+		
+				# Get Parameters
 				dev1="$(echo $line | cut -d'_' -f2 )"
 				comp1="$(echo $line | cut -d'_' -f3 )"
 				grep1=$dev1"|"$comp1
@@ -122,6 +122,10 @@ elif [ "$1" = "remove" ]; then
 				desc2="$(grep $grep2 $rootpath/devlist | cut -d'|' -f3 )"
 				multiswitchline="$desc1 ($dev1) -> $desc2 ($dev2)"
 				
+				# Remove from multilist
+				sed -i "/$multiswitchline/d" $rootpath/multilist
+				
+				# Show message
 				statusmsg INPUT="MESSAGE" MSG="$multiswitchline" COLOR="white"
 
 			done <<< "$svcline"

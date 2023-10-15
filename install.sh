@@ -193,6 +193,7 @@ curl -i \
 -X POST -d "$(generate_datasource)" "http://$grafana_url/api/datasources"
 
 echo ""
+echo ""
 echo "##################################"
 echo "# Create dashboards              #"
 echo "##################################"
@@ -254,6 +255,7 @@ curl -i \
 -X PUT -d '{"homeDashboardId":'$home_id'}' http://$grafana_url/api/org/preferences
 
 echo ""
+echo ""
 echo "##################################"
 echo "# Postprocessing                 #"
 echo "##################################"
@@ -272,7 +274,6 @@ echo "# Nanohome Crontabs" >> /etc/crontab
 # Cleanup
 rm -rf /tmp/*.json
 
-echo ""
 echo "##################################"
 echo "# Start services                 #"
 echo "##################################"
@@ -284,3 +285,9 @@ systemctl restart grafana-server
 systemctl restart mosquitto
 systemctl start mqtt_shell.service
 systemctl enable mqtt_shell.service
+
+echo ""
+echo "##################################"
+echo "# Finish                         #"
+echo "##################################"
+echo ""
