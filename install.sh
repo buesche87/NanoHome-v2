@@ -71,7 +71,8 @@ for i in /tmp/nanohome/service/*; do
 done
 
 # Copy services
-cp /tmp/nanohome/service/* /etc/systemd/system/
+cp /tmp/nanohome/service/mqtt_shell.service /etc/systemd/system/
+cp /tmp/nanohome/service/* $rootpath/service/
 
 # Make binaries executable
 chmod +x $rootpath/bin/*

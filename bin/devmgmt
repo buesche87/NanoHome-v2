@@ -12,7 +12,7 @@ component="$4"
 source INSTALLDIR/config.cfg
 
 # Variables
-apikey="$(cat $rootpath/conf/api_key.json | jq -r '.key')"
+sa_token="$(cat $rootpath/conf/sa_token.json | jq -r '.key')"
 random="$(date +%s)"
 
 # variables
@@ -38,7 +38,7 @@ minp="/tmp/merge_panel_input.json"
 get_dashboard () {
 	
 	# Download dashboard drom grafana to temporary file
-	curl -X GET -H "Authorization: Bearer $apikey" -H "Content-Type: application/json" "http://$grafana_url"/api/dashboards/uid/"$1" > $mtemp
+	curl -X GET -H "Authorization: Bearer $sa_token" -H "Content-Type: application/json" "http://$grafana_url"/api/dashboards/uid/"$1" > $mtemp
 }
 
 # Update dashboard
@@ -50,7 +50,7 @@ update_dashboard () {
 	jq --argjson options "$json_data" '. += $options' $mout > $mfinal
 	
 	# Upload dashboard to grafana
-	curl -X POST --insecure -H "Authorization: Bearer $apikey" -H "Content-Type: application/json" -d @$mfinal "http://$grafana_url"/api/dashboards/db > /dev/null 2>&1
+	curl -X POST --insecure -H "Authorization: Bearer $sa_token" -H "Content-Type: application/json" -d @$mfinal "http://$grafana_url"/api/dashboards/db > /dev/null 2>&1
 	
 	# Remove temporary files
 	rm /tmp/merge_panel_*

@@ -46,8 +46,8 @@ if [ "$1" = "add" ]; then
 		# Copy Service File from a template and modify it		
 		cp $svctemplate $svcfile
 
-		sed -i "s/-dev1/$dev1/" $svcfile
-		sed -i "s/-dev2/$dev2/" $svcfile
+		sed -i "s/-dev1/$device1/" $svcfile
+		sed -i "s/-dev2/$device2/" $svcfile
 		sed -i "s/-value1/$dev1_command/" $svcfile
 		sed -i "s/-value2/$dev2_command/" $svcfile		
 		sed -i "s/-desc1/$description1/" $svcfile
@@ -93,11 +93,11 @@ elif [ "$1" = "show" ]; then
 #/////////////////////////////////////////////////////////////////////////////////////
 elif [ "$1" = "remove" ]; then
 	
-	if [ "$dev2" == "" ]; then 
+	if [ "$device2" == "" ]; then 
 	
 		statusmsg INPUT="HEADER" MSG="Multiswitch gelöscht" COLOR="hotpink"
 		
-		$svcline="ls $svclocation | grep multiswitch | grep $dev1"
+		$svcline=$(ls $svclocation | grep multiswitch | grep $device1)
 		
 		# Delete every Multiswitch
 		while IFS= read -r line
