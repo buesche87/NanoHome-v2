@@ -1,9 +1,4 @@
-curl -X GET -H "Authorization: Bearer eyJrIjoiYVo5eUxRS1Eyc2VlZmNPN3JBSk5NSVloM3BhMjR0WlMiLCJuIjoiTmFub2hvbWUgU3lzdGVtIiwiaWQiOjF9" -H "Content-Type: application/json" http://localhost:3000/api/dashboards/uid/sYOGRUiRz > /tmp/dashboardd.json
-
-
-
-
-curl -X GET -H "Authorization: Bearer eyJrIjoibjNwdEo0V2NmM2c3VEFzallSTjAxRTh5WFNTQUNIcXYiLCJuIjoiTmFub2hvbWUgU3lzdGVtIiwiaWQiOjF9" -H "Content-Type: application/json" http://localhost:3000/api/folders
+curl -X GET -H "Authorization: Bearer xxx" -H "Content-Type: application/json" http://localhost:3000/api/dashboards/uid/kwvFMgZnz > /tmp/dashboard.json
 
 
 meta entfernen
