@@ -1,6 +1,6 @@
 # NanoHome v2
 
-This is a one-man show, don't expect it to be bug-free...
+This is a one-man show, may there are bugs...
 
 Version 2 changes:
 
