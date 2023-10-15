@@ -98,32 +98,34 @@ elif [ "$1" = "remove" ]; then
 		statusmsg INPUT="HEADER" MSG="Multiswitch gelöscht" COLOR="grey"
 		svcline=$(ls $svclocation | grep multiswitch | grep $device1)
 
-		# Delete every Multiswitch
-		while IFS= read -r line
-		do
-			# Remove service
-			systemctl stop "$line"
-			systemctl disable "$line"
-			rm -r "$svclocation/$line"
-			systemctl daemon-reload
+		if [ ! -z "$svcline" ]; then
+			# Delete every Multiswitch
+			while IFS= read -r line
+			do
+				# Remove service
+				systemctl stop "$line"
+				systemctl disable "$line"
+				rm -r "$svclocation/$line"
+				systemctl daemon-reload
 
-			# Remove from multilist
-			sed -i "/$line/d" $rootpath/multilist
-			
-			# Show message
-			dev1="$(echo $line | cut -d'_' -f2 )"
-			comp1="$(echo $line | cut -d'_' -f3 )"
-			grep1=$dev1"|"$comp1
-			desc1="$(grep $grep1 $rootpath/devlist | cut -d'|' -f3 )"
-			dev2="$(echo $line | cut -d'_' -f4 )"
-			comp2="$(echo $line | cut -d'_' -f5 )"
-			grep2=$dev2"|"$comp2
-			desc2="$(grep $grep2 $rootpath/devlist | cut -d'|' -f3 )"
-			multiswitchline="$desc1 ($dev1) -> $desc2 ($dev2)"
-			
-			statusmsg INPUT="MESSAGE" MSG="$multiswitchline" COLOR="white"
+				# Remove from multilist
+				sed -i "/$line/d" $rootpath/multilist
+				
+				# Show message
+				dev1="$(echo $line | cut -d'_' -f2 )"
+				comp1="$(echo $line | cut -d'_' -f3 )"
+				grep1=$dev1"|"$comp1
+				desc1="$(grep $grep1 $rootpath/devlist | cut -d'|' -f3 )"
+				dev2="$(echo $line | cut -d'_' -f4 )"
+				comp2="$(echo $line | cut -d'_' -f5 )"
+				grep2=$dev2"|"$comp2
+				desc2="$(grep $grep2 $rootpath/devlist | cut -d'|' -f3 )"
+				multiswitchline="$desc1 ($dev1) -> $desc2 ($dev2)"
+				
+				statusmsg INPUT="MESSAGE" MSG="$multiswitchline" COLOR="white"
 
-		done <<< "$svcline"
+			done <<< "$svcline"
+		fi
 
 	else
 
