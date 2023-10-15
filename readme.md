@@ -1,6 +1,7 @@
 # NanoHome v2
 
-A simple home automation solution for shelly devices with focus on a nice dashboard that can be presented on a tablet
+A simple home automation solution for shelly devices with focus on a nice dashboard that can be presented on a tablet.
+
 This is a one-man show, may there are bugs...
 
 Version 2 changes:
