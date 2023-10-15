@@ -59,7 +59,7 @@ while read rpc; do
 	if [ "$currentposition" != "null" ]; then influx write -b $influxdb_bucket -p s "$devdesc Position=$currentposition"; fi
 	
 	# Send status to mqtt topic
-	if [ "$output" != "null" ]; then mosquitto_pub -h $mqtt_server -u $mqtt_system_user -P $mqtt_system_pass -t $status_out_topic -m $statustxt; fi
+	if [ "$output" != "null" ]; then mosquitto_pub -h $mqtt_server -u $mqtt_system_user -P $mqtt_system_pass -t $status_out_topic -m $statustxt -r; fi
 	if [ "$targetposition" != "null" ]; then mosquitto_pub -h $mqtt_server -u $mqtt_system_user -P $mqtt_system_pass -t $status_out_topic -m $targetposition; fi
 
 done < <(mosquitto_sub -h $mqtt_server -u $mqtt_system_user -P $mqtt_system_pass -t $status_topic -q 2)

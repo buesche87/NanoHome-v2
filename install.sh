@@ -140,6 +140,19 @@ influx config create \
   --token $influxdb_token \
   --active
 
+# Get ID from newly created bucket
+bucketlist=$(influx bucket list -n $influxdb_bucket --json)
+bucketid="$(echo $bucketlist | jq -r '.[].id')"
+
+# Create read-only token for grafana
+ro_token_json=$(influx auth create \
+  --description grafana \
+  --org $influxdb_org \
+  --read-bucket $bucketid \
+  --json)
+  
+ro_token="$(echo $ro_token_json | jq -r '.token')"
+
 echo ""
 echo "##################################"
 echo "# Configure Grafana              #"
@@ -147,7 +160,7 @@ echo "##################################"
 echo ""
 
 # Create Grafana Service Account
-create_serviceaccount()
+sa_nanohome()
 {
   cat <<EOF
 {
@@ -161,7 +174,7 @@ EOF
 curl -i \
 -H "Accept: application/json" \
 -H "Content-Type:application/json" \
--X POST -d "$(create_serviceaccount)" "http://admin:admin@$grafana_url/api/serviceaccounts"
+-X POST -d "$(sa_nanohome)" "http://admin:admin@$grafana_url/api/serviceaccounts"
 
 # Create Serviceaccount Token
 token_json="$(curl -X POST -H "Content-Type: application/json" -d '{"name":"nanohome"}' http://admin:admin@$grafana_url/api/serviceaccounts/2/tokens)"
@@ -178,8 +191,8 @@ generate_datasource()
   "typeName":"InfluxDB",
   "access":"proxy",
   "url":"$influxdb_url",
-  "jsonData":{"defaultBucket":"$influxdb_bucket","organization":"$influxdb_org","version":"Flux","tlsSkipVerify":true},
-  "secureJsonData":{"token":"$influxdb_token"},
+  "jsonData":{"dbName":"$influxdb_bucket","httpMode":"GET","httpHeaderName1":"Authorization"},
+  "secureJsonData":{"httpHeaderValue1":"Token $ro_token"},
   "isDefault":true,
   "readOnly":false
 }
