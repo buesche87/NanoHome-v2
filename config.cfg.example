@@ -15,8 +15,6 @@ influxdb_admin="nanohome"
 influxdb_adminpass="password"
 influxdb_token="EJIOHNSXDTZBDWIU23"
 influxdb_config="nanohome"
-influxdb_pkg="https://dl.influxdata.com/influxdb/releases/influxdb2-2.7.1-amd64.deb"
-influxdb_cli="https://dl.influxdata.com/influxdb/releases/influxdb2-client-2.7.3-linux-amd64.tar.gz"
 
 # MQTT settings
 mqtt_server="localhost"
