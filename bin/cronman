@@ -101,8 +101,8 @@ elif [ "$1" = "remove" ]; then
 	sed -i '/'$description'/d' $rootpath/cronlist
 	sed -i '\|'$control_topic'|d' /etc/crontab
 
-	statusmsg INPUT="HEADER" MSG="Schaltuhr deaktiviert" COLOR="white"
-	statusmsg INPUT="MESSAGE" MSG="$devdesc ($device)" COLOR="white"
+	statusmsg INPUT="HEADER" MSG="Schaltuhr deaktiviert" COLOR="grey"
+	statusmsg INPUT="MESSAGE" MSG="$description ($device)" COLOR="white"
 
 #/////////////////////////////////////////////////////////////////////////////////////
 # Error Exit

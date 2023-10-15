@@ -11,6 +11,7 @@ fi
 # load settings
 source ./config.cfg
 
+echo ""
 echo "##################################"
 echo "# Create user for NanoHome       #"
 echo "##################################"
@@ -28,6 +29,7 @@ else
 
 fi
 
+echo ""
 echo "##################################"
 echo "# Create files and direcories    #"
 echo "##################################"
@@ -48,6 +50,7 @@ touch $rootpath/cronlist
 touch $rootpath/killerlist
 touch $rootpath/multilist
 
+echo ""
 echo "##################################"
 echo "# Copy files                     #"
 echo "##################################"
@@ -92,6 +95,7 @@ chmod +x $rootpath/driver/*
 # Link binaries
 ln -sf $rootpath/bin/* /usr/local/bin/
 
+echo ""
 echo "##################################"
 echo "# Configure mosquitto            #"
 echo "##################################"
@@ -113,6 +117,7 @@ mosquitto_passwd -b /etc/mosquitto/passwd $mqtt_grafana_user $mqtt_grafana_pass
 mosquitto_passwd -b /etc/mosquitto/passwd $mqtt_shelly_user $mqtt_shelly_pass
 mosquitto_passwd -b /etc/mosquitto/passwd $mqtt_dash_user $mqtt_dash_pass
 
+echo ""
 echo "##################################"
 echo "# Configure InfluxDB             #"
 echo "##################################"
@@ -135,6 +140,7 @@ influx config create \
   --token $influxdb_token \
   --active
 
+echo ""
 echo "##################################"
 echo "# Configure Grafana              #"
 echo "##################################"
@@ -186,7 +192,7 @@ curl -i \
 -H "Authorization: Bearer $sa_token" \
 -X POST -d "$(generate_datasource)" "http://$grafana_url/api/datasources"
 
-
+echo ""
 echo "##################################"
 echo "# Create dashboards              #"
 echo "##################################"
@@ -247,6 +253,7 @@ curl -i \
 -H "Authorization: Bearer $sa_token" \
 -X PUT -d '{"homeDashboardId":'$home_id'}' http://$grafana_url/api/org/preferences
 
+echo ""
 echo "##################################"
 echo "# Postprocessing                 #"
 echo "##################################"
@@ -265,6 +272,7 @@ echo "# Nanohome Crontabs" >> /etc/crontab
 # Cleanup
 rm -rf /tmp/*.json
 
+echo ""
 echo "##################################"
 echo "# Start services                 #"
 echo "##################################"
