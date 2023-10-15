@@ -54,14 +54,14 @@ sudo systemctl start grafana-server
 sudo systemctl start mosquitto
 ```
 
-## Install NanoHome
+# Install NanoHome
 
-# Clone NanoHome
+## Clone NanoHome
 ```bash
 git clone https://github.com/buesche87/NanoHome-v2.git
 ```
 
-# Edit NanoHome Config
+## Edit NanoHome Config
 ```bash
 cd NanoHome-v2
 cp config.cfg.example config.cfg
@@ -69,7 +69,7 @@ cp config.cfg.example config.cfg
 
 Edit account details. Don't mess with the dashboard settings, these id's are given by the installation.
 
-# Install
+## Install
 
 ```bash
 chmod +x ./install.sh
