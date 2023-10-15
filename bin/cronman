@@ -39,15 +39,15 @@ if [ "$1" = "add" ] ; then
 
 	# Add cronjob and print details
 	if [ "$on" != "null" ]; then
-	
+
 		# Get hours and minutes
 		on_hours="${on:0:2}"
 		on_minutes="${on:3:5}"
-		
+
 		# Fill hours and minutes
 		if [ ${#on_hours} -lt 2 ]; then on_hours="0$on_hours"; fi
 		if [ "$on_minutes" = "" ]; then on_minutes="00"; fi
-		
+
 		# Add Cronjob
 		add_cronjob "$on_minutes" "$on_hours" "$day" "$oncommand"
 		cronon=$(echo "$description ($device) - ${oncommand^^}: $daydesc $on_hours:$on_minutes")
@@ -56,22 +56,22 @@ if [ "$1" = "add" ] ; then
 	fi
 
 	if [ "$off" != "null" ]; then
-		
+
 		# Get hours and minutes
 		off_hours="${off:0:2}"
 		off_minutes="${off:3:5}"
-		
+
 		# Fill hours and minutes
 		if [ ${#off_hours} -lt 2 ]; then off_hours="0$off_hours"; fi
-		if [ "$off_minutes" = "" ]; then off_minutes="00"; fi		
-		
+		if [ "$off_minutes" = "" ]; then off_minutes="00"; fi
+
 		# Add Cronjob
 		add_cronjob "$off_minutes" "$off_hours" "$day" "$offcommand"
 		cronoff=$(echo "$description ($device) - ${offcommand^^}: $daydesc $off_hours:$off_minutes")
 		echo "$cronoff" >> $rootpath/cronlist
 		statusmsg INPUT="MESSAGE" MSG="$cronoff" COLOR="white"
 	fi
-	
+
 #/////////////////////////////////////////////////////////////////////////////////////
 # Show Cronjob
 #/////////////////////////////////////////////////////////////////////////////////////
@@ -88,30 +88,26 @@ elif [ "$1" = "show" ]; then
 		statusmsg INPUT="MESSAGE" MSG="$cronjob" COLOR="white"
 	else
 		statusmsg INPUT="HEADER" MSG="Schaltuhr inaktiv" COLOR="grey"
-	fi	
-	
+	fi
 
 #/////////////////////////////////////////////////////////////////////////////////////
 # Remove Cronjob
 #/////////////////////////////////////////////////////////////////////////////////////
 elif [ "$1" = "remove" ]; then
-	
+
 	# Load device compatibility
 	source $rootpath/devcompatibility $device $component
-	
+
 	sed -i '/'$description'/d' $rootpath/cronlist
 	sed -i '\|'$control_topic'|d' /etc/crontab
-	
+
 	statusmsg INPUT="HEADER" MSG="Schaltuhr deaktiviert" COLOR="white"
 	statusmsg INPUT="MESSAGE" MSG="$devdesc ($device)" COLOR="white"
-	
+
+#/////////////////////////////////////////////////////////////////////////////////////
+# Error Exit
+#/////////////////////////////////////////////////////////////////////////////////////
 else
-
-	echo "--------------------------------------------------------------"
-	echo "Usage: cronman show|add|remove device|all (on_time) (off_time)"
-	echo "--------------------------------------------------------------"
-	echo
-
+	statusmsg INPUT="ERROR" MSG="Eingabe prüfen"
 	exit 1
-
 fi

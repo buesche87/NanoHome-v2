@@ -36,7 +36,7 @@ minp="/tmp/merge_panel_input.json"
 
 # Get dashboard
 get_dashboard () {
-	
+
 	# Download dashboard drom grafana to temporary file
 	curl -X GET -H "Authorization: Bearer $sa_token" -H "Content-Type: application/json" "http://$grafana_url"/api/dashboards/uid/"$1" > $mtemp
 }
@@ -44,14 +44,14 @@ get_dashboard () {
 # Update dashboard
 update_dashboard () {
 
-	# Get and overwrite folderId of dashboard 
+	# Get and overwrite folderId of dashboard
 	folderid="$(cat $mout | grep folderId | awk '{ sub(/^[ \t]+/, ""); print }')"
 	json_data="{ ${folderid} \"overwrite\": true }"
 	jq --argjson options "$json_data" '. += $options' $mout > $mfinal
-	
+
 	# Upload dashboard to grafana
 	curl -X POST --insecure -H "Authorization: Bearer $sa_token" -H "Content-Type: application/json" -d @$mfinal "http://$grafana_url"/api/dashboards/db > /dev/null 2>&1
-	
+
 	# Remove temporary files
 	rm /tmp/merge_panel_*
 }
@@ -61,17 +61,17 @@ merge_settings () {
 
 	get_dashboard "$settings_uid"
 	jq . $mtemp > $mout
-	
+
 	# Add option to dashboard
 	sed -i "s#${devicelist_drop}#${devicelist_drop}${option_devlist}#g" $mout
-	
+
 	# Upload dashboard
 	update_dashboard
 }
 
 # Merge new element into home dashboard
 merge_home () {
-	
+
 	# Copy element template
 	cp $jsontemplate $minp
 
@@ -80,10 +80,10 @@ merge_home () {
 	sed -i 's/_DESCRIPTION_/'"$description"'/g' $minp
 	sed -i 's/_COMPONENT_/'"$component"'/g' $minp
 	sed -i 's/_RAND_/'$random'/g' $minp
-	
+
 	# Get home dashboard
 	get_dashboard "$home_uid"
-	
+
 	# Add element to dashboard
 	jq --argjson panel "$(<$minp)" '.dashboard.panels += [$panel]' $mtemp > $mout
 
@@ -97,7 +97,7 @@ merge_timer () {
 	# Get timer dashboard
 	get_dashboard "$zsp_uid"
 	jq . $mtemp > $mout
-	
+
 	# Add standbykiller option if device is switch
 	if $pm_device; then
 		sed -i "s#${killer_drop}#${killer_drop}${option_dev}#g" $mout
@@ -111,7 +111,7 @@ merge_timer () {
 		sed -i "s#${switch_if_drop}#${switch_if_drop}${option_dev}#g" $mout
 		sed -i "s#${switch_then_drop}#${switch_then_drop}${option_dev}#g" $mout
 	fi
-	
+
 	# Upload dashboard
 	update_dashboard
 }
@@ -121,7 +121,7 @@ remove_from_dashboard () {
 
 	get_dashboard "$1"
 	jq . $mtemp > $mout
-	
+
 	sed -i "s#${option_dev}##g" $mout
 	sed -i "s#${option_devlist}##g" $mout
 	update_dashboard
@@ -144,27 +144,27 @@ elif [ "$1" = "add" ]; then
 
 	# Add device to devlist
 	echo -e "$device|$component|$description" >> $rootpath/devlist
-	
+
 	# Add device to dashboards
 	merge_settings
-	
+
 	if [ "$component" != "ht" ]; then
 		merge_home
 		merge_timer
 	fi
-	
+
 	# servicefiles
 	svcname=$device"_"$component".service"
 	svcfile="/etc/systemd/system/$svcname"
-	
-	# Create device service 
+
+	# Create device service
 	cp $servicetemplate $svcfile
 	sed -i "s/-device/$device/" $svcfile
 	sed -i "s/-component/$component/" $svcfile
 	systemctl daemon-reload
 	systemctl start $svcname
 	systemctl enable $svcname
-	
+
 	# message
 	statusmsg INPUT="HEADER" MSG="Gerät hinzugefügt" COLOR="hotpink"
 	statusmsg INPUT="MESSAGE" MSG="$description ($device)" COLOR="white"
@@ -172,16 +172,16 @@ elif [ "$1" = "add" ]; then
 
 elif [ "$1" = "remove" ]; then
 
-	## Remove services and timers
-	# cronman remove "$description"
-	# echo ""
-	# multiswitch remove "$device"
-	# echo ""
-	# standbykiller remove "$device"
-	# echo ""
-
 	# Get component description
 	component="$(grep $description $rootpath/devlist | cut -d'|' -f2 )"
+
+	# Remove services and timers
+	cronman remove "$device" "$component"
+	echo ""
+	multiswitch remove "$device"
+	echo ""
+	standbykiller remove "$device" "$description"
+	echo ""
 
 	# servicefiles
 	svcname=$device"_"$component".service"
@@ -192,14 +192,14 @@ elif [ "$1" = "remove" ]; then
 	systemctl disable $svcname
 	rm -r $svcfile
 	systemctl daemon-reload
-	
-	# Remove from devlist	
+
+	# Remove from devlist
 	sed -i '/'$description'/d' $rootpath/devlist
-	
+
 	# Remove from dashboards
 	remove_from_dashboard $settings_uid
 	remove_from_dashboard $zsp_uid
-	
+
 	# Show message
 	statusmsg INPUT="HEADER" MSG="Gerät gelöscht" COLOR="hotpink"
 	statusmsg INPUT="MESSAGE" MSG="$description ($device)" COLOR="white"
@@ -207,7 +207,7 @@ elif [ "$1" = "remove" ]; then
 	exit 0
 
 #/////////////////////////////////////////////////////////////////////////////////////
-# Err Exit
+# Error Exit
 #/////////////////////////////////////////////////////////////////////////////////////
 else
 	statusmsg INPUT="ERROR" MSG="Eingabe prüfen"

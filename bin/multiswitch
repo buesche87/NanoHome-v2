@@ -35,21 +35,21 @@ if [ "$1" = "add" ]; then
 
 	# create service
 	else
-		
+
 		# Load device compatibility
 		source $rootpath/devcompatibility $device1 $component1
 		dev1_command=$(echo $toggle_command)
-		
+
 		source $rootpath/devcompatibility $device2 $component2
 		dev2_command=$(echo $toggle_command)
-		
-		# Copy Service File from a template and modify it		
+
+		# Copy Service File from a template and modify it
 		cp $svctemplate $svcfile
 
 		sed -i "s/-dev1/$device1/" $svcfile
 		sed -i "s/-dev2/$device2/" $svcfile
 		sed -i "s/-value1/$dev1_command/" $svcfile
-		sed -i "s/-value2/$dev2_command/" $svcfile		
+		sed -i "s/-value2/$dev2_command/" $svcfile
 		sed -i "s/-desc1/$description1/" $svcfile
 		sed -i "s/-desc2/$description2/" $svcfile
 
@@ -57,10 +57,10 @@ if [ "$1" = "add" ]; then
 		systemctl daemon-reload
 		systemctl start $svcname
 		systemctl enable $svcname
-		
+
 		# Fill Multiswitch List
-		echo "$description1 ($device1) -> $description2 ($device2)" >> $rootpath/multilist 
-		
+		echo "$description1 ($device1) -> $description2 ($device2)" >> $rootpath/multilist
+
 		# Show Message
 		statusmsg INPUT="HEADER" MSG="Multiswitch aktiviert" COLOR="hotpink"
 		statusmsg INPUT="MESSAGE" MSG="$multiswitchline" COLOR="white"
@@ -86,19 +86,19 @@ elif [ "$1" = "show" ]; then
 		statusmsg INPUT="MESSAGE" MSG="$multilist" COLOR="white"
 	else
 		statusmsg INPUT="HEADER" MSG="Multiswitch inaktiv" COLOR="grey"
-	fi	
+	fi
 
 #/////////////////////////////////////////////////////////////////////////////////////
 # Remove Multiswitch
 #/////////////////////////////////////////////////////////////////////////////////////
 elif [ "$1" = "remove" ]; then
-	
-	if [ "$device2" == "" ]; then 
-	
-		statusmsg INPUT="HEADER" MSG="Multiswitch gelöscht" COLOR="hotpink"
-		
+
+	if [ "$device2" == "" ]; then
+
+		statusmsg INPUT="HEADER" MSG="Multiswitch gelöscht" COLOR="grey"
+
 		$svcline=$(ls $svclocation | grep multiswitch | grep $device1)
-		
+
 		# Delete every Multiswitch
 		while IFS= read -r line
 		do
@@ -106,11 +106,11 @@ elif [ "$1" = "remove" ]; then
 			systemctl disable "$line"
 			rm -r "$svclocation/$line"
 			systemctl daemon-reload
-			
+
 			statusmsg INPUT="MESSAGE" MSG="$svcline" COLOR="white"
 
 		done <<< "$svcline"
-		
+
 	else
 
 		# Remove service
@@ -121,16 +121,16 @@ elif [ "$1" = "remove" ]; then
 
 		# Remove from multilist
 		sed -i '/'$multiswitchline'/d' $rootpath/multilist
-		
+
 		# Show message
-		statusmsg INPUT="HEADER" MSG="Multiswitch gelöscht" COLOR="hotpink"
+		statusmsg INPUT="HEADER" MSG="Multiswitch gelöscht" COLOR="grey"
 		statusmsg INPUT="MESSAGE" MSG="$multiswitchline" COLOR="white"
 	fi
 
+#/////////////////////////////////////////////////////////////////////////////////////
+# Error Exit
+#/////////////////////////////////////////////////////////////////////////////////////
 else
-
-	statusmsg "Error" "red" "" "" "Eingabe prüfen" "white"
-
+	statusmsg INPUT="ERROR" MSG="Eingabe prüfen"
 	exit 1
-
 fi
