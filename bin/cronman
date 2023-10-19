@@ -11,11 +11,11 @@ daydesc="$5"
 on="$6"
 off="$7"
 
-# Get component description
-component="$(grep $description $rootpath/devlist | cut -d'|' -f2 )"
-
 # Load config
 source INSTALLDIR/config.cfg
+
+# Get component description
+component=$(grep "$description" $rootpath/devlist | cut -d'|' -f2 )
 
 # Add cronjob
 add_cronjob () {
@@ -50,7 +50,7 @@ if [ "$1" = "add" ] ; then
 
 		# Add Cronjob
 		add_cronjob "$on_minutes" "$on_hours" "$day" "$oncommand"
-		cronon=$(echo "$description ($device) - ${oncommand^^}: $daydesc $on_hours:$on_minutes")
+		cronon=$(echo ""$description" ($device) - ${oncommand^^}: $daydesc $on_hours:$on_minutes")
 		echo "$cronon" >> $rootpath/cronlist
 		statusmsg INPUT="MESSAGE" MSG="$cronon" COLOR="white"
 	fi
@@ -67,7 +67,7 @@ if [ "$1" = "add" ] ; then
 
 		# Add Cronjob
 		add_cronjob "$off_minutes" "$off_hours" "$day" "$offcommand"
-		cronoff=$(echo "$description ($device) - ${offcommand^^}: $daydesc $off_hours:$off_minutes")
+		cronoff=$(echo ""$description" ($device) - ${offcommand^^}: $daydesc $off_hours:$off_minutes")
 		echo "$cronoff" >> $rootpath/cronlist
 		statusmsg INPUT="MESSAGE" MSG="$cronoff" COLOR="white"
 	fi

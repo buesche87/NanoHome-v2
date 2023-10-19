@@ -6,12 +6,12 @@
 # Parameters
 devcomp_device="$1"
 devcomp_component="$2"
-rootpath="INSTALLDIR"
+rootpath="/opt/nanohome"
 legacy=false
 pm_device=false
 
 # Legacy Switch
-function legacy-switch () {
+function legacy_switch () {
 
 	control_topic="shellies/$devcomp_device/relay/0/command"
 	status_topic="shellies/$devcomp_device/relay/0"
@@ -24,7 +24,7 @@ function legacy-switch () {
 }
 
 # Legacy PowerMeter
-function legacy-pm () {
+function legacy_pm () {
 
 	energy_topic="shellies/$devcomp_device/relay/0/energy"
 	power_topic="shellies/$devcomp_device/relay/0/power"
@@ -33,7 +33,7 @@ function legacy-pm () {
 }
 
 # Plus Switch
-function plus-switch () {
+function plus_switch () {
 
 	control_topic="$devcomp_device/command/$1"
 	status_topic="$devcomp_device/status/$1"
@@ -48,11 +48,11 @@ function plus-switch () {
 }
 
 # Plus Cover
-function plus-cover () {
+function plus_cover () {
 
 	control_topic="$devcomp_device/command/$1"
 	status_topic="$devcomp_device/status/$1"
-	rpc_topic=s"$devcomp_device/rpc"
+	rpc_topic="$devcomp_device/rpc"
 	status_out_topic="$devcomp_device/status/$1/out"
 	status_command="status_update"
 	oncommand="open"
@@ -62,7 +62,7 @@ function plus-cover () {
 }
 
 # Legacy Roller
-function legacy-roller () {
+function legacy_roller () {
 
 	control_topic="shellies/$devcomp_device/roller/0/command"
 	pos_control="shellies/$devcomp_device/roller/0/command/pos"
@@ -101,55 +101,55 @@ function sensor () {
 # Main
 if [[ $devcomp_device == shelly1-* ]]; then
 
-	legacy-switch
+	legacy_switch
 
 elif [[ $devcomp_device == shelly1pm-* ]]; then
 
-	legacy-switch
-	legacy-pm
+	legacy_switch
+	legacy_pm
 
 elif [[ $devcomp_device == shellyswitch25- ]]; then
 	
 	if [[ $devcomp_component == switch* ]]; then 
 
-		legacy-switch
+		legacy_switch
 	
 	elif [[ $devcomp_component == cover* ]]; then 
 	
-		legacy-roller
+		legacy_roller
 		
 	elif [ "$devcomp_devtype" = "roller" ]; then 
 	
-		legacy-roller
+		legacy_roller
 	
 	fi
 
 elif [[ $devcomp_device == shellyplus1-* ]]; then
 	
-	plus-switch "switch:0"
+	plus_switch "switch:0"
 
 elif [[ $devcomp_device == shellyplus1pm-* ]]; then
 	
-	plus-switch "switch:0"
+	plus_switch "switch:0"
 	pm_device=true
 
 elif [[ $devcomp_device == shelly1mini-* ]]; then
 	
-	plus-switch "switch:0"
+	plus_switch "switch:0"
 
 elif [[ $devcomp_device == shelly1pmmini-* ]]; then
 	
-	plus-switch "switch:0"
+	plus_switch "switch:0"
 	pm_device=true
 
 elif [[ $devcomp_device == shellyplus2pm-* ]]; then
 	
 	if [[ $devcomp_component == switch* ]]; then
-		plus-switch $devcomp_component
+		plus_switch "$devcomp_component"
 	fi
 
 	if [[ $devcomp_component == cover* ]]; then
-		plus-cover $devcomp_component
+		plus_cover "$devcomp_component"
 	fi
 	
 	pm_device=true
