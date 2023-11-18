@@ -4,8 +4,6 @@ Description=Standbykiller Plus -desc -sbpwr W
 
 [Service]
 Type=simple
-user=SVCUSER
-group=SVCUSER
 ExecStart=/bin/bash INSTALLDIR/driver/standbykiller_plus -dev -desc -sbpwr
 Restart=always
 

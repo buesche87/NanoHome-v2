@@ -34,7 +34,7 @@ while read rpc; do
 	targetposition=$(echo $rpc | jq -r .target_pos )
 	status=0
 	statustxt="Off"
-	if [ "$output" = "true" ]; then status=1; statustxt="On"; fi
+	if [[ "$output" == "true" ]]; then status=1; statustxt="On"; fi
 	
 	echo "---------------------------------"
 	echo "Device: $device"
@@ -50,16 +50,17 @@ while read rpc; do
 	echo "---------------------------------"
 
 	# insert values into influxdb
-	if [ "$status" != "null" ]; then influx write -b $influxdb_bucket -p s "$devdesc Status=$status"; fi
-	if [ "$energy" != "null" ]; then influx write -b $influxdb_bucket -p s "$devdesc Energy=$energy"; fi
-	if [ "$power" != "null" ]; then influx write -b $influxdb_bucket -p s "$devdesc Power=$power"; fi
-	if [ "$voltage" != "null" ]; then influx write -b $influxdb_bucket -p s "$devdesc Voltage=$voltage"; fi
-	if [ "$current" != "null" ]; then influx write -b $influxdb_bucket -p s "$devdesc Current=$current"; fi
-	if [ "$temperature" != "null" ]; then influx write -b $influxdb_bucket -p s "$devdesc Temperature=$temperature"; fi
-	if [ "$currentposition" != "null" ]; then influx write -b $influxdb_bucket -p s "$devdesc Position=$currentposition"; fi
+	if [[ "$status" != "null" ]]; then influx write -b $influxdb_bucket -p s "$devdesc Status=$status"; fi
+	if [[ "$energy" != "null" ]]; then influx write -b $influxdb_bucket -p s "$devdesc Energy=$energy"; fi
+	if [[ "$power" != "null" ]]; then influx write -b $influxdb_bucket -p s "$devdesc Power=$power"; fi
+	if [[ "$voltage" != "null" ]]; then influx write -b $influxdb_bucket -p s "$devdesc Voltage=$voltage"; fi
+	if [[ "$current" != "null" ]]; then influx write -b $influxdb_bucket -p s "$devdesc Current=$current"; fi
+	if [[ "$temperature" != "null" ]]; then influx write -b $influxdb_bucket -p s "$devdesc Temperature=$temperature"; fi
+	if [[ "$currentposition" != "null" ]]; then influx write -b $influxdb_bucket -p s "$devdesc Position=$currentposition"; fi
 	
 	# Send status to mqtt topic
-	if [ "$output" != "null" ]; then mosquitto_pub -h $mqtt_server -u $mqtt_system_user -P $mqtt_system_pass -t $status_out_topic -m $statustxt -r; fi
-	if [ "$targetposition" != "null" ]; then mosquitto_pub -h $mqtt_server -u $mqtt_system_user -P $mqtt_system_pass -t $status_out_topic -m $targetposition; fi
+	if [[ "$output" != "null" ]]; then mosquitto_pub -h $mqtt_server -u $mqtt_system_user -P $mqtt_system_pass -t $status_out_topic -m $statustxt -r; fi
+	if [[ "$targetposition" != "null" ]]; then mosquitto_pub -h $mqtt_server -u $mqtt_system_user -P $mqtt_system_pass -t $status_out_topic -m $targetposition -r; fi
 
 done < <(mosquitto_sub -h $mqtt_server -u $mqtt_system_user -P $mqtt_system_pass -t $status_topic -q 2)
+

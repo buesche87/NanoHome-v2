@@ -20,14 +20,16 @@ source $rootpath/devcompatibility $device $component
 
 # Main
 while /bin/true; do
+
+	sleep 1
 	
 	#Get Status
 	while read status; do
-		if [ "$status" = "on" ]; then status=1; statustxt="On"; fi
-		if [ "$status" = "off" ]; then status=0; statustxt="Off"; fi
 		echo "Status: $status"
 		influx write -b $influxdb_bucket -p s "$devdesc Status=$status"
 	done < <(mosquitto_sub -h $mqtt_server -u $mqtt_system_user -P $mqtt_system_pass -t $status_topic -q 2) &
+	
+	sleep 1
 	
 	# Get Energy
 	if [ "$energy_topic" ]; then
@@ -37,6 +39,8 @@ while /bin/true; do
 		done < <(mosquitto_sub -h $mqtt_server -u $mqtt_system_user -P $mqtt_system_pass -t $energy_topic -q 2) &
 	fi
 	
+	sleep 1
+	
 	# Get Power
 	if [ "$power_topic" ]; then
 		while read power; do
@@ -45,6 +49,8 @@ while /bin/true; do
 		done < <(mosquitto_sub -h $mqtt_server -u $mqtt_system_user -P $mqtt_system_pass -t $power_topic -q 2) &
 	fi
 	
+	sleep 1
+	
 	# Get Temperature
 	if [ "$temperature_topic" ]; then
 		while read temperature; do
@@ -52,6 +58,8 @@ while /bin/true; do
 			influx write -b $influxdb_bucket -p s "$devdesc Temperature=$temperature"
 		done < <(mosquitto_sub -h $mqtt_server -u $mqtt_system_user -P $mqtt_system_pass -t $temperature_topic -q 2) &
 	fi
+	
+	sleep 1
 
 	# Get Position
 	if [ "$pos_topic" ]; then

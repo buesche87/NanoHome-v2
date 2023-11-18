@@ -4,8 +4,6 @@ Description=MQTT-Shell Service
 
 [Service]
 Type=simple
-user=SVCUSER
-group=SVCUSER
 ExecStartPre=/bin/sleep 5
 ExecStart=/bin/bash INSTALLDIR/driver/mqtt_shell -s
 Restart=always

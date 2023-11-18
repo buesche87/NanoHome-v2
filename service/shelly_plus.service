@@ -4,8 +4,6 @@ Description=Shelly Plus Service - -device/-component
 
 [Service]
 Type=simple
-user=SVCUSER
-group=SVCUSER
 ExecStart=/bin/bash INSTALLDIR/driver/shelly_plus "-device" "-component"
 Restart=always
 

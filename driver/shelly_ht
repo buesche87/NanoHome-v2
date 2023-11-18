@@ -20,6 +20,8 @@ source $rootpath/devcompatibility $device $component
 
 # Main
 while /bin/true; do
+
+	sleep 1
 	
 	# Get Temperature
 	if [ "$temperature_topic" ]; then
@@ -29,6 +31,8 @@ while /bin/true; do
 		done < <(mosquitto_sub -h $mqtt_server -u $mqtt_system_user -P $mqtt_system_pass -t $temperature_topic -q 2) &
 	fi
 	
+	sleep 1
+	
 	# Get Humidity
 	if [ "$humidity_topic" ]; then
 		while read humidity; do
@@ -36,6 +40,8 @@ while /bin/true; do
 			influx write -b $influxdb_bucket -p s "$devdesc Humidity=$humidity"
 		done < <(mosquitto_sub -h $mqtt_server -u $mqtt_system_user -P $mqtt_system_pass -t $humidity_topic -q 2) &
 	fi
+	
+	sleep 1
 	
 	# Get Battery
 	if [ "$battery_topic" ]; then

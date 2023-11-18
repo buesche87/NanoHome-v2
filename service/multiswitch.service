@@ -4,8 +4,6 @@ Description=Multiswitch Service - -desc1 -> -desc2
 
 [Service]
 Type=simple
-user=SVCUSER
-group=SVCUSER
 ExecStart=/bin/bash INSTALLDIR/driver/multiswitch -dev1 -desc1 -dev2 -desc2 -value1 -value2
 Restart=always
 
