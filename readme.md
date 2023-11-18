@@ -27,7 +27,8 @@ wget https://dl.influxdata.com/influxdb/releases/influxdb2-2.7.1-amd64.deb
 sudo dpkg -i influxdb2-2.7.1-amd64.deb
 
 wget https://dl.influxdata.com/influxdb/releases/influxdb2-client-2.7.3-linux-amd64.tar.gz
-tar xvzf influxdb2-client-2.7.3-linux-amd64.tar.gz ./influxcli
+mkdir ./influxcli
+tar xvzf influxdb2-client-2.7.3-linux-amd64.tar.gz -C ./influxcli
 sudo cp ./influxcli/influx /usr/local/bin/
 ```
 
