@@ -193,7 +193,12 @@ elif [ "$1" = "remove" ]; then
 	# Remove service
 	systemctl stop $svcname
 	systemctl disable $svcname
-	rm -r $svcfile
+	
+	# Don't delte whole systemd!
+	if [ "$svcfile" != "/etc/systemd/system/" ]; then
+		rm -r $svcfile
+	fi
+	
 	systemctl daemon-reload
 
 	# Remove from devlist
