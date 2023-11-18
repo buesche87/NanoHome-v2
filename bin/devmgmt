@@ -8,6 +8,9 @@ device="$2"
 description="$3"
 component="$4"
 
+# Remove all unanted spaces from device input
+device=$(echo ${device//[[:blank:]]/})
+
 # Load config
 source INSTALLDIR/config.cfg
 
