@@ -2,8 +2,6 @@
 
 A simple home automation solution for shelly devices with focus on a nice dashboard that can be presented on a tablet.
 
-This is a one-man show, may there are bugs...
-
 Version 2 changes:
 
 - New UI, minimalist approach
@@ -11,7 +9,7 @@ Version 2 changes:
 - Add support for Shelly Plus devices
 - Adopt to InfluxDB v2
 - Adopt to Grafana service accounts
-- Installer should be working now
+- Working installer
 
 I used https://dietpi.com as distribution
 
@@ -77,4 +75,4 @@ chmod +x ./install.sh
 sudo ./install.sh
 ```
 
-Go to http://youripadress:3000/
+Go to http://youripadress:3000/ and login with admin:admin
