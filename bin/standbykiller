@@ -12,10 +12,10 @@ maxpower="$4"
 source INSTALLDIR/config.cfg
 
 # Get component description
-component="$(grep $description $rootpath/devlist | cut -d'|' -f2 )"
+component="$(grep "$description" "$rootpath/devlist" | cut -d'|' -f2 )"
 
 # Environment
-svcname="standbykiller_"$device"_"$component".service"
+svcname="standbykiller_${device}_${component}.service"
 svclocation="/etc/systemd/system"
 svcfile="$svclocation/$svcname"
 
@@ -33,7 +33,7 @@ if [ "$1" = "add" ]; then
 	else
 
 		# Load device compatibility
-		source $rootpath/devcompatibility $device $component
+		source "$rootpath/devcompatibility" "$device" "$component"
 
 		# Copy Service File from a template and modify it
 		if $legacy; then
@@ -42,19 +42,19 @@ if [ "$1" = "add" ]; then
 			svctemplate="$rootpath/service/standbykiller_plus.service"
 		fi
 
-		cp $svctemplate $svcfile
+		cp "$svctemplate" "$svcfile"
 
-		sed -i "s/-dev/$device/" $svcfile
-		sed -i "s/-desc/$description/" $svcfile
-		sed -i "s/-sbpwr/$maxpower/" $svcfile
+		sed -i "s/-dev/$device/" "$svcfile"
+		sed -i "s/-desc/$description/" "$svcfile"
+		sed -i "s/-sbpwr/$maxpower/" "$svcfile"
 
 		# Enable and Start Service
 		systemctl daemon-reload
-		systemctl start $svcname
-		systemctl enable $svcname
+		systemctl start "$svcname"
+		systemctl enable "$svcname"
 
 		# Fill Standbykiller List
-		echo "$description ($device): $maxpower W" >> $rootpath/killerlist
+		echo "$description ($device): $maxpower W" >> "$rootpath/killerlist"
 
 		# Show Message
 		statusmsg INPUT="HEADER" MSG="Standbykiller aktiviert" COLOR="#c0fcb"
@@ -69,13 +69,13 @@ elif [ "$1" = "show" ]; then
 
 	# Get entry from Standbykiller List
 	if [ "$device" = "all" ]; then
-		killerlist=$(cat $rootpath/killerlist)
+		killerlist=$(cat "$rootpath/killerlist")
 	else
-		killerlist=$(grep $device $rootpath/killerlist)
+		killerlist=$(grep "$device" "$rootpath/killerlist")
 	fi
 
 	# Print List
-	if [ ! -z "$killerlist" ]; then
+	if [ -n "$killerlist" ]; then
 		statusmsg INPUT="HEADER" MSG="Standbykiller aktiv" COLOR="#c0fcb"
 		statusmsg INPUT="MESSAGE" MSG="$killerlist" COLOR="white"
 	else
@@ -88,13 +88,17 @@ elif [ "$1" = "show" ]; then
 elif [ "$1" = "remove" ]; then
 
 	# Remove service
-	systemctl stop $svcname
-	systemctl disable $svcname
-	rm -r $svcfile
+	systemctl stop "$svcname"
+	systemctl disable "$svcname"
+	
+	if [ "$svcfile" != "/etc/systemd/system/" ]; then
+		rm -r "$svcfile"
+	fi
+	
 	systemctl daemon-reload
 
 	# Remove from killerlist
-	sed -i '/'$description'/d' $rootpath/killerlist
+	sed -i "/${description}/d" "$rootpath/killerlist"
 
 	# Show message
 	statusmsg INPUT="HEADER" MSG="Standbykiller deaktiviert" COLOR="grey"

@@ -15,15 +15,13 @@ off="$7"
 source INSTALLDIR/config.cfg
 
 # Get component description
-component=$(grep "$description" $rootpath/devlist | cut -d'|' -f2 )
+component=$(grep "$description" "$rootpath/devlist" | cut -d'|' -f2 )
 
 # Add cronjob
 add_cronjob () {
 
-	# cron="$1 $2 * * $3 mosquitto_pub -h $mqtt_server -u $mqtt_system_user -P $mqtt_system_pass -t $control_topic -m $4"
 	cron="$1 $2 * * $3 root /usr/bin/mosquitto_pub -h $mqtt_server -u $mqtt_system_user -P $mqtt_system_pass -t $control_topic -m $4"
-	# (crontab -l ; echo "$cron") | crontab -
-	echo "$cron" >> /etc/crontab
+	echo "$cron" >> "/etc/crontab"
 }
 
 #/////////////////////////////////////////////////////////////////////////////////////
@@ -32,7 +30,7 @@ add_cronjob () {
 if [ "$1" = "add" ] ; then
 
 	# Load device compatibility
-	source $rootpath/devcompatibility $device $component
+	source "$rootpath/devcompatibility" "$device" "$component"
 
 	# Print header
 	statusmsg INPUT="HEADER" MSG="Schaltuhr aktiviert" COLOR="#c0fcb"
@@ -45,13 +43,13 @@ if [ "$1" = "add" ] ; then
 		on_minutes="${on:3:5}"
 
 		# Fill hours and minutes
-		if [ ${#on_hours} -lt 2 ]; then on_hours="0$on_hours"; fi
-		if [ "$on_minutes" = "" ]; then on_minutes="00"; fi
+		on_hours=$(printf "%02d" "$on_hours")
+		on_minutes=${on_minutes:-"00"}
 
 		# Add Cronjob
 		add_cronjob "$on_minutes" "$on_hours" "$day" "$oncommand"
-		cronon=$(echo ""$description" ($device) - ${oncommand^^}: $daydesc $on_hours:$on_minutes")
-		echo "$cronon" >> $rootpath/cronlist
+		cronon="${description} (${device}) - ${oncommand^^}: ${daydesc} ${on_hours}:${on_minutes}"
+		echo "$cronon" >> "$rootpath/cronlist"
 		statusmsg INPUT="MESSAGE" MSG="$cronon" COLOR="white"
 	fi
 
@@ -62,13 +60,13 @@ if [ "$1" = "add" ] ; then
 		off_minutes="${off:3:5}"
 
 		# Fill hours and minutes
-		if [ ${#off_hours} -lt 2 ]; then off_hours="0$off_hours"; fi
-		if [ "$off_minutes" = "" ]; then off_minutes="00"; fi
+		off_hours=$(printf "%02d" "$off_hours")
+		off_minutes=${off_minutes:-"00"}
 
 		# Add Cronjob
 		add_cronjob "$off_minutes" "$off_hours" "$day" "$offcommand"
-		cronoff=$(echo ""$description" ($device) - ${offcommand^^}: $daydesc $off_hours:$off_minutes")
-		echo "$cronoff" >> $rootpath/cronlist
+		cronoff="${description} (${device}) - ${offcommand^^}: ${daydesc} ${off_hours}:${off_minutes}"
+		echo "$cronoff" >> "$rootpath/cronlist"
 		statusmsg INPUT="MESSAGE" MSG="$cronoff" COLOR="white"
 	fi
 
@@ -78,12 +76,12 @@ if [ "$1" = "add" ] ; then
 elif [ "$1" = "show" ]; then
 
 	if [ "$device" = "all" ]; then
-		cronjob=$(cat $rootpath/cronlist)
+		cronjob=$(cat "$rootpath/cronlist")
 	else
-		cronjob=$(grep $device $rootpath/cronlist)
+		cronjob=$(grep "$device" "$rootpath/cronlist")
 	fi
 
-	if [ ! -z "$cronjob" ]; then
+	if [ -n "$cronjob" ]; then
 		statusmsg INPUT="HEADER" MSG="Schaltuhr aktiv" COLOR="#c0fcb"
 		statusmsg INPUT="MESSAGE" MSG="$cronjob" COLOR="white"
 	else
@@ -96,10 +94,10 @@ elif [ "$1" = "show" ]; then
 elif [ "$1" = "remove" ]; then
 
 	# Load device compatibility
-	source $rootpath/devcompatibility $device $component
+	source "$rootpath/devcompatibility" "$device" "$component"
 
-	sed -i "/$description ($device)/d" $rootpath/cronlist
-	sed -i '\|'$control_topic'|d' /etc/crontab
+	sed -i "/${description} (${device})/d" "$rootpath/cronlist"
+	sed -i "\\|${control_topic}|d" "/etc/crontab"
 
 	statusmsg INPUT="HEADER" MSG="Schaltuhr deaktiviert" COLOR="grey"
 	statusmsg INPUT="MESSAGE" MSG="$description ($device)" COLOR="white"

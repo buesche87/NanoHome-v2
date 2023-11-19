@@ -13,12 +13,12 @@ description2="$5"
 source INSTALLDIR/config.cfg
 
 # Get component description
-component1="$(grep $description1 $rootpath/devlist | cut -d'|' -f2 )"
-component2="$(grep $description2 $rootpath/devlist | cut -d'|' -f2 )"
+component1="$(grep "$description1" "$rootpath/devlist" | cut -d'|' -f2 )"
+component2="$(grep "$description2" "$rootpath/devlist" | cut -d'|' -f2 )"
 
 # Environment
 multiswitchline="$description1 ($device1) -> $description2 ($device2)"
-svcname="multiswitch_"$device1"_"$component1"_"$device2"_"$component2".service"
+svcname="multiswitch_${device1}_${component1}_${device2}_${component2}.service"
 svclocation="/etc/systemd/system"
 svcfile="$svclocation/$svcname"
 svctemplate="$rootpath/service/multiswitch.service"
@@ -36,30 +36,31 @@ if [ "$1" = "add" ]; then
 	# create service
 	else
 
-		# Load device compatibility
-		source $rootpath/devcompatibility $device1 $component1
-		dev1_command=$(echo $toggle_command)
+		# Load device compatibility for device1
+		source "$rootpath/devcompatibility" "$device1" "$component1"
+		dev1_command=$(echo "$toggle_command")
 
-		source $rootpath/devcompatibility $device2 $component2
-		dev2_command=$(echo $toggle_command)
+		# Load device compatibility for device2
+		source "$rootpath/devcompatibility" "$device2" "$component2"
+		dev2_command=$(echo "$toggle_command")
 
 		# Copy Service File from a template and modify it
-		cp $svctemplate $svcfile
+		cp "$svctemplate" "$svcfile"
 
-		sed -i "s/-dev1/$device1/" $svcfile
-		sed -i "s/-dev2/$device2/" $svcfile
-		sed -i "s/-value1/$dev1_command/" $svcfile
-		sed -i "s/-value2/$dev2_command/" $svcfile
-		sed -i "s/-desc1/$description1/" $svcfile
-		sed -i "s/-desc2/$description2/" $svcfile
+		sed -i "s/-dev1/$device1/" "$svcfile"
+		sed -i "s/-dev2/$device2/" "$svcfile"
+		sed -i "s/-value1/$dev1_command/" "$svcfile"
+		sed -i "s/-value2/$dev2_command/" "$svcfile"
+		sed -i "s/-desc1/$description1/" "$svcfile"
+		sed -i "s/-desc2/$description2/" "$svcfile"
 
 		# Enable and Start Service
 		systemctl daemon-reload
-		systemctl start $svcname
-		systemctl enable $svcname
+		systemctl start "$svcname"
+		systemctl enable "$svcname"
 
 		# Fill Multiswitch List
-		echo "$multiswitchline" >> $rootpath/multilist
+		echo "$multiswitchline" >> "$rootpath/multilist"
 
 		# Show Message
 		statusmsg INPUT="HEADER" MSG="Multiswitch aktiviert" COLOR="#c0fcb"
@@ -75,9 +76,9 @@ elif [ "$1" = "show" ]; then
 
 	# Get entry from Multiswitch List
 	if [ "$device1" = "all" ]; then
-		multilist=$(cat $rootpath/multilist)
+		multilist=$(cat "$rootpath/multilist")
 	else
-		multilist=$(grep "$multiswitchline" $rootpath/multilist)
+		multilist=$(grep "$multiswitchline" "$rootpath/multilist")
 	fi
 
 	# Print List
@@ -93,10 +94,10 @@ elif [ "$1" = "show" ]; then
 #/////////////////////////////////////////////////////////////////////////////////////
 elif [ "$1" = "remove" ]; then
 
-	if [ "$device2" == "" ]; then
+	if [ -z "$device2" ]; then
 		
 		# Get all multiswitches with device to be removed
-		svcline=$(ls $svclocation | grep multiswitch | grep $device1)
+		svcline=$(ls "$svclocation" | grep "multiswitch" | grep "$device1")
 
 		if [ ! -z "$svcline" ]; then
 		
@@ -108,22 +109,25 @@ elif [ "$1" = "remove" ]; then
 				# Remove service
 				systemctl stop "$line"
 				systemctl disable "$line"
-				rm -r "$svclocation/$line"
+				
+				if [ "$svclocation/$line" != "/etc/systemd/system/" ]; then
+					rm -r "$svclocation/$line"
+				fi
 				systemctl daemon-reload
 		
 				# Get Parameters
 				dev1="$(echo $line | cut -d'_' -f2 )"
 				comp1="$(echo $line | cut -d'_' -f3 )"
-				grep1=$dev1"|"$comp1
+				grep1="$dev1|$comp1"
 				desc1="$(grep $grep1 $rootpath/devlist | cut -d'|' -f3 )"
 				dev2="$(echo $line | cut -d'_' -f4 )"
 				comp2="$(echo $line | cut -d'_' -f5 )"
-				grep2=$dev2"|"$comp2
+				grep2="$dev2|$comp2"
 				desc2="$(grep $grep2 $rootpath/devlist | cut -d'|' -f3 )"
 				multiswitchline="$desc1 ($dev1) -> $desc2 ($dev2)"
 				
 				# Remove from multilist
-				sed -i "/$multiswitchline/d" $rootpath/multilist
+				sed -i "/$multiswitchline/d" "$rootpath/multilist"
 				
 				# Show message
 				statusmsg INPUT="MESSAGE" MSG="$multiswitchline" COLOR="white"
@@ -134,13 +138,15 @@ elif [ "$1" = "remove" ]; then
 	else
 
 		# Remove service
-		systemctl stop $svcname
-		systemctl disable $svcname
-		rm -r $svcfile
+		systemctl stop "$svcname"
+		systemctl disable "$svcname"
+		if [ "$svcfile" != "/etc/systemd/system/" ]; then
+			rm -r "$svcfile"
+		fi
 		systemctl daemon-reload
 
 		# Remove from multilist
-		sed -i "/$multiswitchline/d" $rootpath/multilist
+		sed -i "/$multiswitchline/d" "$rootpath/multilist"
 
 		# Show message
 		statusmsg INPUT="HEADER" MSG="Multiswitch deaktiviert" COLOR="grey"

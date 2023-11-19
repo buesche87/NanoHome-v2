@@ -28,10 +28,10 @@ switch_if_drop='\\r\\n\\t<option value=\\"\\" selected disabled>-- Wenn --</opti
 switch_then_drop='\\r\\n\\t<option value=\\"\\" selected disabled>-- Dann --</option>'
 
 # tempfiles
-mout="/tmp/merge_panel_output.json"
-mtemp="/tmp/merge_panel_temp.json"
-mfinal="/tmp/merge_panel_final.json"
-minp="/tmp/merge_panel_input.json"
+original_dashboard="/tmp/nanohome_temp_original_dashboard.json"
+readable_dashboard="/tmp/nanohome_temp_readable_dashboard.json"
+final_dashboard="/tmp/nanohome_temp_final_dashboard.json"
+panel_template="/tmp/nanohome_temp_panel_template.json"
 
 #/////////////////////////////////////////////////////////////////////////////////////
 # Functions
@@ -41,32 +41,31 @@ minp="/tmp/merge_panel_input.json"
 get_dashboard () {
 
 	# Download dashboard drom grafana to temporary file
-	curl -X GET -H "Authorization: Bearer $sa_token" -H "Content-Type: application/json" "http://$grafana_url"/api/dashboards/uid/"$1" > $mtemp
+	curl -X GET -H "Authorization: Bearer $sa_token" -H "Content-Type: application/json" "http://$grafana_url/api/dashboards/uid/$1" > "$original_dashboard"
 }
 
 # Update dashboard
 update_dashboard () {
 
 	# Get and overwrite folderId of dashboard
-	folderid="$(cat $mout | grep folderId | awk '{ sub(/^[ \t]+/, ""); print }')"
-	json_data="{ ${folderid} \"overwrite\": true }"
-	jq --argjson options "$json_data" '. += $options' $mout > $mfinal
+	folderid=$(grep folderId "$readable_dashboard" | awk '{ sub(/^[ \t]+/, ""); print }')
+	jq --argjson options "{ $folderid \"overwrite\": true }" '. += $options' "$readable_dashboard" > "$final_dashboard"
 
 	# Upload dashboard to grafana
-	curl -X POST --insecure -H "Authorization: Bearer $sa_token" -H "Content-Type: application/json" -d @$mfinal "http://$grafana_url"/api/dashboards/db > /dev/null 2>&1
+	curl -X POST --insecure -H "Authorization: Bearer $sa_token" -H "Content-Type: application/json" -d @"$final_dashboard" "http://$grafana_url/api/dashboards/db" > /dev/null 2>&1
 
 	# Remove temporary files
-	rm /tmp/merge_panel_*
+	rm /tmp/nanohome_temp_*
 }
 
 # Merge new element into settings dashboard
 merge_settings () {
 
 	get_dashboard "$settings_uid"
-	jq . $mtemp > $mout
+	jq . "$original_dashboard" > "$readable_dashboard"
 
 	# Add option to dashboard
-	sed -i "s#${devicelist_drop}#${devicelist_drop}${option_devlist}#g" $mout
+	sed -i "s#${devicelist_drop}#${devicelist_drop}${option_devlist}#g" "$readable_dashboard"
 
 	# Upload dashboard
 	update_dashboard
@@ -76,19 +75,19 @@ merge_settings () {
 merge_home () {
 
 	# Copy element template
-	cp $jsontemplate $minp
+	cp "$jsontemplate" "$panel_template"
 
 	# Replace device-strings in template
-	sed -i 's/_DEVID_/'$device'/g' $minp
-	sed -i 's/_DESCRIPTION_/'"$description"'/g' $minp
-	sed -i 's/_COMPONENT_/'"$component"'/g' $minp
-	sed -i 's/_RAND_/'$random'/g' $minp
+	sed -i "s/_DEVID_/$device/g" "$panel_template"
+	sed -i "s/_DESCRIPTION_/$description/g" "$panel_template"
+	sed -i "s/_COMPONENT_/$component/g" "$panel_template"
+	sed -i "s/_RAND_/$random/g" "$panel_template"
 
 	# Get home dashboard
 	get_dashboard "$home_uid"
 
 	# Add element to dashboard
-	jq --argjson panel "$(<$minp)" '.dashboard.panels += [$panel]' $mtemp > $mout
+	jq --argjson panel "$(cat "$panel_template")" '.dashboard.panels += [$panel]' "$original_dashboard" > "$readable_dashboard"
 
 	# Upload dashboard
 	update_dashboard
@@ -99,20 +98,20 @@ merge_timer () {
 
 	# Get timer dashboard
 	get_dashboard "$zsp_uid"
-	jq . $mtemp > $mout
+	jq . "$original_dashboard" > "$readable_dashboard"
 
 	# Add standbykiller option if device is switch
 	if $pm_device; then
-		sed -i "s#${killer_drop}#${killer_drop}${option_dev}#g" $mout
+		sed -i "s#${killer_drop}#${killer_drop}${option_dev}#g" "$readable_dashboard"
 	fi
 
 	# add timer option
-	sed -i "s#${timer_drop}#${timer_drop}${option_dev}#g" $mout
+	sed -i "s#${timer_drop}#${timer_drop}${option_dev}#g" "$readable_dashboard"
 
 	# add multiswitch option
 	if [ "$component" != "cover*" ]; then
-		sed -i "s#${switch_if_drop}#${switch_if_drop}${option_dev}#g" $mout
-		sed -i "s#${switch_then_drop}#${switch_then_drop}${option_dev}#g" $mout
+		sed -i "s#${switch_if_drop}#${switch_if_drop}${option_dev}#g" "$readable_dashboard"
+		sed -i "s#${switch_then_drop}#${switch_then_drop}${option_dev}#g" "$readable_dashboard"
 	fi
 
 	# Upload dashboard
@@ -123,10 +122,10 @@ merge_timer () {
 remove_from_dashboard () {
 
 	get_dashboard "$1"
-	jq . $mtemp > $mout
+	jq . "$original_dashboard" > "$readable_dashboard"
 
-	sed -i "s#${option_dev}##g" $mout
-	sed -i "s#${option_devlist}##g" $mout
+	sed -i "s#${option_dev}##g" "$readable_dashboard"
+	sed -i "s#${option_devlist}##g" "$readable_dashboard"
 	update_dashboard
 }
 
@@ -143,10 +142,10 @@ if [ "$1" = "show" ]; then
 elif [ "$1" = "add" ]; then
 
 	# Load device compatibility
-	source $rootpath/devcompatibility $device $component
+	source "$rootpath/devcompatibility" "$device" "$component"
 
 	# Add device to devlist
-	echo -e "$device|$component|$description" >> $rootpath/devlist
+	echo -e "$device|$component|$description" >> "$rootpath/devlist"
 
 	# Add device to dashboards
 	merge_settings
@@ -157,16 +156,16 @@ elif [ "$1" = "add" ]; then
 	fi
 
 	# servicefiles
-	svcname=$device"_"$component".service"
+	svcname="${device}_${component}.service"
 	svcfile="/etc/systemd/system/$svcname"
 
 	# Create device service
-	cp $servicetemplate $svcfile
-	sed -i "s/-device/$device/" $svcfile
-	sed -i "s/-component/$component/" $svcfile
+	cp "$servicetemplate" "$svcfile"
+	sed -i "s/-device/$device/" "$svcfile"
+	sed -i "s/-component/$component/" "$svcfile"
 	systemctl daemon-reload
-	systemctl start $svcname
-	systemctl enable $svcname
+	systemctl start "$svcname"
+	systemctl enable "$svcname"
 
 	# message
 	statusmsg INPUT="HEADER" MSG="Gerät hinzugefügt" COLOR="hotpink"
@@ -187,26 +186,26 @@ elif [ "$1" = "remove" ]; then
 	echo ""
 
 	# servicefiles
-	svcname=$device"_"$component".service"
+	svcname="${device}_${component}.service"
 	svcfile="/etc/systemd/system/$svcname"
 
 	# Remove service
-	systemctl stop $svcname
-	systemctl disable $svcname
+	systemctl stop "$svcname"
+	systemctl disable "$svcname"
 	
 	# Don't delte whole systemd!
 	if [ "$svcfile" != "/etc/systemd/system/" ]; then
-		rm -r $svcfile
+		rm -r "$svcfile"
 	fi
 	
 	systemctl daemon-reload
 
 	# Remove from devlist
-	sed -i '/'$description'/d' $rootpath/devlist
+	sed -i "/${description}/d" "$rootpath/devlist"
 
 	# Remove from dashboards
-	remove_from_dashboard $settings_uid
-	remove_from_dashboard $zsp_uid
+	remove_from_dashboard "$settings_uid"
+	remove_from_dashboard "$zsp_uid"
 
 	# Show message
 	statusmsg INPUT="HEADER" MSG="Gerät gelöscht" COLOR="hotpink"
