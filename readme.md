@@ -75,4 +75,4 @@ chmod +x ./install.sh
 sudo ./install.sh
 ```
 
-Go to http://youripadress:3000/
+Go to http://youripadress:3000/ and login with admin:admin
