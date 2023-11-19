@@ -9,7 +9,7 @@ Version 2 changes:
 - Add support for Shelly Plus devices
 - Adopt to InfluxDB v2
 - Adopt to Grafana service accounts
-- Installer should be working now
+- Working installer
 
 I used https://dietpi.com as distribution
 
