@@ -1,6 +1,7 @@
 [Unit]
 Wants=mosquitto.service
 Description=Multiswitch Service - -desc1 -> -desc2
+After=mosquitto.service
 
 [Service]
 Type=simple

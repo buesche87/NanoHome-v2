@@ -10,35 +10,35 @@ maxpower="$3"
 source INSTALLDIR/config.cfg
 
 # Get component description
-component="$(grep $description $rootpath/devlist | cut -d'|' -f2 )"
+component="$(grep "$description" "$rootpath/devlist" | cut -d'|' -f2 )"
 
 # Load device compatibility
-source $rootpath/devcompatibility $device $component
+source "$rootpath/devcompatibility" "$device" "$component"
 
 # Environment
 devstate="off"
 try="1"
 
 # Main
-while read rpc; do
+while read -r rpc; do
 
 	now=$(date +"%T")
 	
 	# parse rpc-json
-	curpower=$(echo $rpc | jq -r .apower )
+	curpower=$(echo "$rpc" | jq -r .apower )
 		
 	# if power = 0W
-	if (( $(echo "$curpower == 0" | bc -l) )); then
+	if ((curpower == 0)); then
 		echo "|[$now] $device: off -> nothing todo"
 		devstate="off"
 	
 	# if power below threshold
-	elif (( $(echo "$curpower < $maxpower" | bc -l) )); then
+	elif ((curpower < maxpower)); then
 		
 		# check if device just started
 		if [ "$devstate" == "on" ]; then
 			echo "|[$now] $device: ${curpower}W - standby killed"
-			mosquitto_pub -h $mqtt_server -u $mqtt_system_user -P $mqtt_system_pass -t $control_topic -m $off_command >/dev/null 2>&1			
+			mosquitto_pub -h "$mqtt_server" -u "$mqtt_system_user" -P "$mqtt_system_pass" -t "$control_topic" -m "$off_command" >/dev/null 2>&1			
 			devstate="off"
 			
 		elif [ "$devstate" == "off" ]; then
@@ -62,4 +62,4 @@ while read rpc; do
 
 	fi
 
-done < <(mosquitto_sub -h $mqtt_server -u $mqtt_system_user -P $mqtt_system_pass -t $status_topic -q 2)
+done < <(mosquitto_sub -h "$mqtt_server" -u "$mqtt_system_user" -P "$mqtt_system_pass" -t "$status_topic" -q 2)

@@ -15,23 +15,22 @@ value2="$6"
 source INSTALLDIR/config.cfg
 
 # Get component description
-component1="$(grep $description1 $rootpath/devlist | cut -d'|' -f2 )"
-component2="$(grep $description2 $rootpath/devlist | cut -d'|' -f2 )"
+component1=$(grep "$description1" "$rootpath/devlist" | cut -d'|' -f2 )
+component2=$(grep "$description2" "$rootpath/devlist" | cut -d'|' -f2 )
 
 # Load device compatibility
-source $rootpath/devcompatibility $device1 $component1
-dev1_control_topic=$(echo $control_topic)
+source "$rootpath/devcompatibility" "$device1" "$component1"
+dev1_control_topic=$control_topic
 
-source $rootpath/devcompatibility $device2 $component2
-dev2_control_topic=$(echo $control_topic)
+source "$rootpath/devcompatibility" "$device2" "$component2"
+dev2_control_topic=$control_topic
 
 # Main
-while read curvalue;
-do
+while read curvalue; do
 
 	now=$(date +"%T")
 	
-	mosquitto_pub -h $mqtt_server -u $mqtt_system_user -P $mqtt_system_pass -t $dev2_control_topic -m $curvalue
-	echo "|[$now] $dev1 $curvalue -> $dev2 $curvalue"
+	mosquitto_pub -h "$mqtt_server" -u "$mqtt_system_user" -P "$mqtt_system_pass" -t "$dev2_control_topic" -m "$curvalue"
+    echo "|[$now] $dev1 $curvalue -> $dev2 $curvalue"
 
-done < <(mosquitto_sub -h $mqtt_server -u $mqtt_system_user -P $mqtt_system_pass -t $dev1_control_topic -q 2)
+done < <(mosquitto_sub -h "$mqtt_server" -u "$mqtt_system_user" -P "$mqtt_system_pass" -t "$dev1_control_topic" -q 2)

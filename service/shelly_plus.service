@@ -1,6 +1,7 @@
 [Unit]
 Wants=mosquitto.service influxdb.service
 Description=Shelly Plus Service - -device/-component
+After=mosquitto.service influxdb.service
 
 [Service]
 Type=simple

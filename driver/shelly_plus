@@ -11,12 +11,12 @@ component="$2"
 source INSTALLDIR/config.cfg
 
 # Get device description
-desc=$device"|"$component
-devdesc="$(grep $desc $rootpath/devlist | cut -d'|' -f3 )"
+desc="$device|$component"
+devdesc="$(grep "$desc" "$rootpath/devlist" | cut -d'|' -f3 )"
 devdesc=${devdesc// /_}
 
 # Device Support
-source $rootpath/devcompatibility $device $component
+source "$rootpath/devcompatibility" "$device" "$component"
 
 # Main
 while read rpc; do
@@ -24,43 +24,58 @@ while read rpc; do
 	now=$(date +"%T")
 
 	# parse rpc-json
-	energy=$(echo $rpc | jq -r .aenergy.total )
-	power=$(echo $rpc | jq -r .apower )
-	voltage=$(echo $rpc | jq -r .voltage )
-	current=$(echo $rpc | jq -r .current )
-	temperature=$(echo $rpc | jq -r .temperature.tC )
-	output=$(echo $rpc | jq -r .output )
-	currentposition=$(echo $rpc | jq -r .current_pos )
-	targetposition=$(echo $rpc | jq -r .target_pos )
+    energy=$(echo "$rpc" | jq -r .aenergy.total )
+    power=$(echo "$rpc" | jq -r .apower )
+    voltage=$(echo "$rpc" | jq -r .voltage )
+    current=$(echo "$rpc" | jq -r .current )
+    temperature=$(echo "$rpc" | jq -r .temperature.tC )
+    output=$(echo "$rpc" | jq -r .output )
+    currentposition=$(echo "$rpc" | jq -r .current_pos )
+    targetposition=$(echo "$rpc" | jq -r .target_pos )
 	status=0
 	statustxt="Off"
 	if [[ "$output" == "true" ]]; then status=1; statustxt="On"; fi
 	
-	echo "---------------------------------"
-	echo "Device: $device"
-	echo "Description: $devdesc"
-	echo "Output: $output"
-	echo "Status: $status"
-	echo "Energy: $energy Wh"
-	echo "Power: $power W"
-	echo "Voltage: $voltage V"
-	echo "Current: $current A"
-	echo "Temperature: $temperature °C"
-	echo "Position: $position"
-	echo "---------------------------------"
+    log_message() {
+        echo "---------------------------------"
+        echo "Device: $device"
+        echo "Description: $devdesc"
+        echo "Output: $output"
+        echo "Status: $status"
+        echo "Energy: $energy Wh"
+        echo "Power: $power W"
+        echo "Voltage: $voltage V"
+        echo "Current: $current A"
+        echo "Temperature: $temperature °C"
+        echo "Position: $position"
+        echo "---------------------------------"
+    }
+
+    log_message
+	
+	# insert values into influxdb
+    influx_write() {
+        [[ "$1" != "null" ]] && influx write -b "$influxdb_bucket" -p s "$devdesc $2=$1"
+    }
 
 	# insert values into influxdb
-	if [[ "$status" != "null" ]]; then influx write -b $influxdb_bucket -p s "$devdesc Status=$status"; fi
-	if [[ "$energy" != "null" ]]; then influx write -b $influxdb_bucket -p s "$devdesc Energy=$energy"; fi
-	if [[ "$power" != "null" ]]; then influx write -b $influxdb_bucket -p s "$devdesc Power=$power"; fi
-	if [[ "$voltage" != "null" ]]; then influx write -b $influxdb_bucket -p s "$devdesc Voltage=$voltage"; fi
-	if [[ "$current" != "null" ]]; then influx write -b $influxdb_bucket -p s "$devdesc Current=$current"; fi
-	if [[ "$temperature" != "null" ]]; then influx write -b $influxdb_bucket -p s "$devdesc Temperature=$temperature"; fi
-	if [[ "$currentposition" != "null" ]]; then influx write -b $influxdb_bucket -p s "$devdesc Position=$currentposition"; fi
+    influx_write "$status" "Status"
+    influx_write "$energy" "Energy"
+    influx_write "$power" "Power"
+    influx_write "$voltage" "Voltage"
+    influx_write "$current" "Current"
+    influx_write "$temperature" "Temperature"
+    influx_write "$currentposition" "Position"
 	
 	# Send status to mqtt topic
-	if [[ "$output" != "null" ]]; then mosquitto_pub -h $mqtt_server -u $mqtt_system_user -P $mqtt_system_pass -t $status_out_topic -m $statustxt -r; fi
-	if [[ "$targetposition" != "null" ]]; then mosquitto_pub -h $mqtt_server -u $mqtt_system_user -P $mqtt_system_pass -t $status_out_topic -m $targetposition -r; fi
-
-done < <(mosquitto_sub -h $mqtt_server -u $mqtt_system_user -P $mqtt_system_pass -t $status_topic -q 2)
-
+    mqtt_publish() {
+        [[ "$1" != "null" ]] && mosquitto_pub -h "$mqtt_server" -u "$mqtt_system_user" -P "$mqtt_system_pass" -t "$status_out_topic" -m "$1" -r
+    }
+	
+	mqtt_publish "$statustxt"
+	
+	if [[ "$targetposition" != "null" ]]; then
+        mqtt_publish "$targetposition"
+    fi
+	
+done < <(mosquitto_sub -h "$mqtt_server" -u "$mqtt_system_user" -P "$mqtt_system_pass" -t "$status_topic" -q 2)

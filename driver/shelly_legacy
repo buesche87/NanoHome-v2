@@ -11,12 +11,12 @@ component="$2"
 source INSTALLDIR/config.cfg
 
 # Get device description
-desc=$device"|"$component
-devdesc="$(grep $desc $rootpath/devlist | cut -d'|' -f3 )"
+desc="$device|$component"
+devdesc="$(grep "$desc" "$rootpath/devlist" | cut -d'|' -f3 )"
 devdesc=${devdesc// /_}
 
 # Device Support
-source $rootpath/devcompatibility $device $component
+source "$rootpath/devcompatibility" "$device" "$component"
 
 # Main
 while /bin/true; do
@@ -24,49 +24,49 @@ while /bin/true; do
 	sleep 1
 	
 	#Get Status
-	while read status; do
+	while read -r status; do
 		echo "Status: $status"
-		influx write -b $influxdb_bucket -p s "$devdesc Status=$status"
-	done < <(mosquitto_sub -h $mqtt_server -u $mqtt_system_user -P $mqtt_system_pass -t $status_topic -q 2) &
+		influx write -b "$influxdb_bucket" -p s "$devdesc Status=$status"
+	done < <(mosquitto_sub -h "$mqtt_server" -u "$mqtt_system_user" -P "$mqtt_system_pass" -t "$status_topic" -q 2) &
 	
 	sleep 1
 	
 	# Get Energy
 	if [ "$energy_topic" ]; then
-		while read energy; do
+		while read -r energy; do
 			echo "Energy: $energy Wh"
-			influx write -b $influxdb_bucket -p s "$devdesc Energy=$energy"
-		done < <(mosquitto_sub -h $mqtt_server -u $mqtt_system_user -P $mqtt_system_pass -t $energy_topic -q 2) &
+			influx write -b "$influxdb_bucket" -p s "$devdesc Energy=$energy"
+		done < <(mosquitto_sub -h "$mqtt_server" -u "$mqtt_system_user" -P "$mqtt_system_pass" -t "$energy_topic" -q 2) &
 	fi
 	
 	sleep 1
 	
 	# Get Power
 	if [ "$power_topic" ]; then
-		while read power; do
+		while read -r power; do
 			echo "Power: $power W"
-			influx write -b $influxdb_bucket -p s "$devdesc Power=$power"
-		done < <(mosquitto_sub -h $mqtt_server -u $mqtt_system_user -P $mqtt_system_pass -t $power_topic -q 2) &
+			influx write -b "$influxdb_bucket" -p s "$devdesc Power=$power"
+		done < <(mosquitto_sub -h "$mqtt_server" -u "$mqtt_system_user" -P "$mqtt_system_pass" -t "$power_topic" -q 2) &
 	fi
 	
 	sleep 1
 	
 	# Get Temperature
 	if [ "$temperature_topic" ]; then
-		while read temperature; do
+		while read -r temperature; do
 			echo "Temperature: $temperature °C"
-			influx write -b $influxdb_bucket -p s "$devdesc Temperature=$temperature"
-		done < <(mosquitto_sub -h $mqtt_server -u $mqtt_system_user -P $mqtt_system_pass -t $temperature_topic -q 2) &
+			influx write -b "$influxdb_bucket" -p s "$devdesc Temperature=$temperature"
+		done < <(mosquitto_sub -h "$mqtt_server" -u "$mqtt_system_user" -P "$mqtt_system_pass" -t "$temperature_topic" -q 2) &
 	fi
 	
 	sleep 1
 
 	# Get Position
 	if [ "$pos_topic" ]; then
-		while read position; do
+		while read -r position; do
 			echo "Temperature: $temperature °C"
-			influx write -b $influxdb_bucket -p s "$devdesc Position=$position"
-		done < <(mosquitto_sub -h $mqtt_server -u $mqtt_system_user -P $mqtt_system_pass -t $pos_topic -q 2) &
+			influx write -b "$influxdb_bucket" -p s "$devdesc Position=$position"
+		done < <(mosquitto_sub -h "$mqtt_server" -u "$mqtt_system_user" -P "$mqtt_system_pass" -t "$pos_topic" -q 2) &
 	fi
 	
 	sleep infinity

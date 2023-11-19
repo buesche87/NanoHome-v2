@@ -11,12 +11,12 @@ component="$2"
 source INSTALLDIR/config.cfg
 
 # Get device description
-desc=$device"|"$component
-devdesc="$(grep $desc $rootpath/devlist | cut -d'|' -f3 )"
+desc="$device|$component"
+devdesc="$(grep "$desc" "$rootpath/devlist" | cut -d'|' -f3 )"
 devdesc=${devdesc// /_}
 
 # Device Support
-source $rootpath/devcompatibility $device $component
+source "$rootpath/devcompatibility" "$device" "$component"
 
 # Main
 while /bin/true; do
@@ -25,30 +25,30 @@ while /bin/true; do
 	
 	# Get Temperature
 	if [ "$temperature_topic" ]; then
-		while read temperature; do
+		while read -r temperature; do
 			echo "Temperature: $temperature °C"
-			influx write -b $influxdb_bucket -p s "$devdesc Temperature=$temperature"
-		done < <(mosquitto_sub -h $mqtt_server -u $mqtt_system_user -P $mqtt_system_pass -t $temperature_topic -q 2) &
+			influx write -b "$influxdb_bucket" -p s "$devdesc Temperature=$temperature"
+		done < <(mosquitto_sub -h "$mqtt_server" -u "$mqtt_system_user" -P "$mqtt_system_pass" -t "$temperature_topic" -q 2) &
 	fi
 	
 	sleep 1
 	
 	# Get Humidity
 	if [ "$humidity_topic" ]; then
-		while read humidity; do
+		 while read -r humidity; do
 			echo "Humidity: $humidity rF"
-			influx write -b $influxdb_bucket -p s "$devdesc Humidity=$humidity"
-		done < <(mosquitto_sub -h $mqtt_server -u $mqtt_system_user -P $mqtt_system_pass -t $humidity_topic -q 2) &
+			influx write -b "$influxdb_bucket" -p s "$devdesc Humidity=$humidity"
+		done < <(mosquitto_sub -h "$mqtt_server" -u "$mqtt_system_user" -P "$mqtt_system_pass" -t "$humidity_topic" -q 2) &
 	fi
 	
 	sleep 1
 	
 	# Get Battery
 	if [ "$battery_topic" ]; then
-		while read battery; do
+		while read -r battery; do
 			echo "Battery: $battery %"
-			influx write -b $influxdb_bucket -p s "$devdesc Battery=$battery"
-		done < <(mosquitto_sub -h $mqtt_server -u $mqtt_system_user -P $mqtt_system_pass -t $battery_topic -q 2) &
+			influx write -b "$influxdb_bucket" -p s "$devdesc Battery=$battery"
+		done < <(mosquitto_sub -h "$mqtt_server" -u "$mqtt_system_user" -P "$mqtt_system_pass" -t "$battery_topic" -q 2) &
 	fi
 	
 	sleep infinity

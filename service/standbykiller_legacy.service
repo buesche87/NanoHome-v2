@@ -1,6 +1,7 @@
 [Unit]
 Wants=mosquitto.service
 Description=Standbykiller Legacy -desc -sbpwr W
+After=mosquitto.service
 
 [Service]
 Type=simple
