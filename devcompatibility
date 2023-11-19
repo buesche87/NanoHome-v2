@@ -6,43 +6,46 @@
 # Parameters
 devcomp_device="$1"
 devcomp_component="$2"
-rootpath="/opt/nanohome"
+rootpath="INSTALLDIR"
 legacy=false
 pm_device=false
 
-# Legacy Switch
-function legacy_switch () {
+#/////////////////////////////////////////////////////////////////////////////////////
+# Generic device settings
+#/////////////////////////////////////////////////////////////////////////////////////
 
-	control_topic="shellies/$devcomp_device/relay/0/command"
-	status_topic="shellies/$devcomp_device/relay/0"
-	oncommand="on"
-	offcommand="off"
-	toggle_command="toggle"
-	servicetemplate="$rootpath/service/shelly_legacy.service"
-	jsontemplate="$rootpath/template/legacy_switch.json.template"
-	legacy=true
-}
-
-# Legacy PowerMeter
-function legacy_pm () {
-
-	energy_topic="shellies/$devcomp_device/relay/0/energy"
-	power_topic="shellies/$devcomp_device/relay/0/power"
-	temperature_topic="shellies/$devcomp_device/temperature"
-	pm_device=true
-}
-
-# Plus Switch
-function plus_switch () {
+# Plus Generic
+function generic_plus () {
 
 	control_topic="$devcomp_device/command/$1"
 	status_topic="$devcomp_device/status/$1"
 	rpc_topic="$devcomp_device/rpc"
 	status_out_topic="$devcomp_device/status/$1/out"
 	status_command="status_update"
+}
+
+# Generic Switch
+function generic_switch () {
+	
 	oncommand="on"
 	offcommand="off"
 	toggle_command="toggle"
+}
+
+# Generic Cover
+function generic_cover () {
+
+	oncommand="open"
+	offcommand="close"
+}
+
+#/////////////////////////////////////////////////////////////////////////////////////
+# Plus device settings
+#/////////////////////////////////////////////////////////////////////////////////////
+
+# Plus Switch
+function plus_switch () {
+
 	servicetemplate="$rootpath/service/shelly_plus.service"
 	jsontemplate="$rootpath/template/shelly_plus_switch.json.template"
 }
@@ -50,15 +53,22 @@ function plus_switch () {
 # Plus Cover
 function plus_cover () {
 
-	control_topic="$devcomp_device/command/$1"
-	status_topic="$devcomp_device/status/$1"
-	rpc_topic="$devcomp_device/rpc"
-	status_out_topic="$devcomp_device/status/$1/out"
-	status_command="status_update"
-	oncommand="open"
-	offcommand="close"
 	servicetemplate="$rootpath/service/shelly_plus.service"
 	jsontemplate="$rootpath/template/shelly_plus_cover.json.template"
+}
+
+#/////////////////////////////////////////////////////////////////////////////////////
+# Legacy device settings
+#/////////////////////////////////////////////////////////////////////////////////////
+
+# Legacy Switch
+function legacy_switch () {
+
+	control_topic="shellies/$devcomp_device/relay/0/command"
+	status_topic="shellies/$devcomp_device/relay/0"
+	servicetemplate="$rootpath/service/shelly_legacy.service"
+	jsontemplate="$rootpath/template/legacy_switch.json.template"
+	legacy=true
 }
 
 # Legacy Roller
@@ -69,8 +79,6 @@ function legacy_roller () {
 	pos_topic="shellies/$devcomp_device/roller/0/pos"
 	power_topic="shellies/$devcomp_device/roller/0/power"
 	energy_topic="shellies/$devcomp_device/roller/0/energy"
-	oncommand="open"
-	offcommand="close"
 	servicetemplate="$rootpath/service/shelly_legacy.service"
 	jsontemplate="$rootpath/template/legacy_roller.json.template"
 	legacy=true
@@ -90,7 +98,7 @@ function dimmer () {
 	legacy=true
 }
 
-# Legacy Switch
+# Legacy Sensor
 function sensor () {
 	temperature_topic="shellies/$devcomp_device/sensor/temperature"
 	humidity_topic="shellies/$devcomp_device/sensor/humidity"
@@ -98,69 +106,72 @@ function sensor () {
 	servicetemplate="$rootpath/service/shelly_ht.service"
 }
 
+# Legacy PowerMeter
+function legacy_pm () {
+
+	energy_topic="shellies/$devcomp_device/relay/0/energy"
+	power_topic="shellies/$devcomp_device/relay/0/power"
+	temperature_topic="shellies/$devcomp_device/temperature"
+	pm_device=true
+}
+
+#/////////////////////////////////////////////////////////////////////////////////////
+# Multi-Purpose device settings
+#/////////////////////////////////////////////////////////////////////////////////////
+
+# ShellySwitch25 (Switch or Cover)
+function legacy_switch25() {
+    if [[ $devcomp_component == switch* ]]; then
+		generic_switch
+        legacy_switch
+    elif [[ $devcomp_component == cover* || "$devcomp_devtype" == "roller" ]]; then
+		generic_cover
+        legacy_roller
+    fi
+}
+
+# ShellyPlus2PM
+plus_switch_cover() {
+    if [[ $devcomp_component == switch* ]]; then
+		generic_switch
+		generic_plus "$devcomp_component"		
+        plus_switch "$devcomp_component"
+    elif [[ $devcomp_component == cover* ]]; then
+		generic_cover
+		generic_plus "$devcomp_component"
+        plus_cover "$devcomp_component"
+    fi
+}
+
+#/////////////////////////////////////////////////////////////////////////////////////
 # Main
-if [[ $devcomp_device == shelly1-* ]]; then
+#/////////////////////////////////////////////////////////////////////////////////////
 
-	legacy_switch
-
-elif [[ $devcomp_device == shelly1pm-* ]]; then
-
-	legacy_switch
-	legacy_pm
-
-elif [[ $devcomp_device == shellyswitch25- ]]; then
-	
-	if [[ $devcomp_component == switch* ]]; then 
-
-		legacy_switch
-	
-	elif [[ $devcomp_component == cover* ]]; then 
-	
-		legacy_roller
-		
-	elif [ "$devcomp_devtype" = "roller" ]; then 
-	
-		legacy_roller
-	
-	fi
-
-elif [[ $devcomp_device == shellyplus1-* ]]; then
-	
-	plus_switch "switch:0"
-
-elif [[ $devcomp_device == shellyplus1pm-* ]]; then
-	
-	plus_switch "switch:0"
-	pm_device=true
-
-elif [[ $devcomp_device == shelly1mini-* ]]; then
-	
-	plus_switch "switch:0"
-
-elif [[ $devcomp_device == shelly1pmmini-* ]]; then
-	
-	plus_switch "switch:0"
-	pm_device=true
-
-elif [[ $devcomp_device == shellyplus2pm-* ]]; then
-	
-	if [[ $devcomp_component == switch* ]]; then
-		plus_switch "$devcomp_component"
-	fi
-
-	if [[ $devcomp_component == cover* ]]; then
-		plus_cover "$devcomp_component"
-	fi
-	
-	pm_device=true
-
-elif [[ $devcomp_device == shellyht-* ]]; then
-	
-	sensor
-
-else
-
-	statusmsg INPUT="ERROR" MSG="Gerät nicht kompatibel"
-	exit 1
-
-fi
+# Main
+case $devcomp_device in
+    shelly1-* | shelly1pm-*)
+		generic_switch
+        legacy_switch
+        [ "$devcomp_device" == "shelly1pm-*" ] && legacy_pm
+        ;;
+    shellyswitch25-*)
+        legacy_switch25
+        ;;
+    shellyplus1-* | shellyplus1pm-* | shelly1mini-* | shelly1pmmini-*)
+		generic_plus "switch:0"
+		generic_switch
+        plus_switch "switch:0"
+        [ "$devcomp_device" == "shellyplus1pm-*" -o "$devcomp_device" == "shelly1pmmini-*" ] && pm_device=true
+        ;;
+    shellyplus2pm-*)
+        plus_switch_cover
+        pm_device=true
+        ;;
+    shellyht-*)
+        sensor
+        ;;
+    *)
+        statusmsg INPUT="ERROR" MSG="Gerät nicht kompatibel"
+        exit 1
+        ;;
+esac
