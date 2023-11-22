@@ -152,7 +152,7 @@ case $devcomp_device in
     shelly1-* | shelly1pm-*)
 		generic_switch
         legacy_switch
-        [ "$devcomp_device" == "shelly1pm-*" ] && legacy_pm
+        [[ "$devcomp_device" == shelly1pm-* ]] && legacy_pm
         ;;
     shellyswitch25-*)
         legacy_switch25
@@ -161,7 +161,7 @@ case $devcomp_device in
 		generic_plus "switch:0"
 		generic_switch
         plus_switch "switch:0"
-        [ "$devcomp_device" == "shellyplus1pm-*" -o "$devcomp_device" == "shelly1pmmini-*" ] && pm_device=true
+        [[ "$devcomp_device" == shellyplus1pm-* || "$devcomp_device" == shelly1pmmini-* ]] && pm_device=true
         ;;
     shellyplus2pm-*)
         plus_switch_cover

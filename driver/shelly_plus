@@ -72,7 +72,9 @@ while read rpc; do
         [[ "$1" != "null" ]] && mosquitto_pub -h "$mqtt_server" -u "$mqtt_system_user" -P "$mqtt_system_pass" -t "$status_out_topic" -m "$1" -r
     }
 	
-	mqtt_publish "$statustxt"
+	if [[ "$output" != "null" ]]; then
+		mqtt_publish "$statustxt"
+	fi
 	
 	if [[ "$targetposition" != "null" ]]; then
         mqtt_publish "$targetposition"

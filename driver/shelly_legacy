@@ -24,8 +24,10 @@ while /bin/true; do
 	sleep 1
 	
 	#Get Status
-	while read -r status; do
-		echo "Status: $status"
+	while read -r statustxt; do
+		echo "Status: $statustxt"
+		status=0
+		if [[ "$statustxt" == "on" ]]; then status=1; fi
 		influx write -b "$influxdb_bucket" -p s "$devdesc Status=$status"
 	done < <(mosquitto_sub -h "$mqtt_server" -u "$mqtt_system_user" -P "$mqtt_system_pass" -t "$status_topic" -q 2) &
 	
@@ -70,5 +72,4 @@ while /bin/true; do
 	fi
 	
 	sleep infinity
-
 done
