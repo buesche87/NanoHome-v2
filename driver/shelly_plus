@@ -69,7 +69,7 @@ while read rpc; do
 	
 	# Send status to mqtt topic
     mqtt_publish() {
-        [[ "$1" != "null" ]] && mosquitto_pub -h "$mqtt_server" -u "$mqtt_system_user" -P "$mqtt_system_pass" -t "$status_out_topic" -m "$1" -r
+        [[ "$1" != "null" ]] && mosquitto_pub -h "$mqtt_server" -u "$mqtt_system_user" -P "$mqtt_system_pass" -t "$status_out_topic" -m "$1"
     }
 	
 	if [[ "$output" != "null" ]]; then
