@@ -1,5 +1,9 @@
 # NanoHome v2
 
+This repository will not be maintained anymore. Use the docker repository instead
+
+---
+
 A simple home automation solution for shelly devices with focus on a nice dashboard that can be presented on a tablet.
 
 Version 2 changes:
